@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "*.dms": "lua",
+        "array": "c",
+        "deque": "c",
+        "string": "c",
+        "unordered_map": "c",
+        "vector": "c",
+        "string_view": "c",
+        "format": "c",
+        "initializer_list": "c",
+        "span": "c",
+        "text_encoding": "c",
+        "stdio.h": "c",
+        "cmath": "cpp"
+    }
+}
