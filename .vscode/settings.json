@@ -12,6 +12,7 @@
         "span": "c",
         "text_encoding": "c",
         "stdio.h": "c",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "lexer.h": "c"
     }
 }

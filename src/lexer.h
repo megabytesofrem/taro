@@ -6,13 +6,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum TokenType
+enum TrTokenType
 {
     TOK_IDENTIFIER,
     TOK_INT,
     TOK_FLOAT,
     TOK_STRING,
     TOK_COMMENT,
+    TOK_ERR, // Error token
+    TOK_EOF, // EOF token
 
     TOK_PLUS,
     TOK_MINUS,
@@ -40,7 +42,7 @@ enum TokenType
 
 typedef struct
 {
-    enum TokenType type;
+    enum TrTokenType type;
     char *value;
     int line, start, end;
 
@@ -49,40 +51,34 @@ typedef struct
         float float_value;
     };
 
-} Token;
+} TrToken;
 
 typedef struct
 {
     const char *name;
-    enum TokenType type;
-} Keyword;
+    enum TrTokenType type;
+} TrKeyword;
 
 typedef struct
 {
     char *src;
     int line, start, current;
 
-    Token *tokens;
-    int token_count;
-    int token_capacity;
-
-    Keyword *reserved_kw;
+    TrKeyword *reserved_kw;
     int reserved_kw_count;
 } TrLexer;
 
-TrLexer lexer_init(char *src);
-void lexer_free(TrLexer *l);
+TrLexer taro_lexer_init(char *src);
+void taro_lexer_cleanup(TrLexer *l);
 
-void format_token(Token t, char *buf);
+void format_token(TrToken t, char *buf);
 
 bool lexer_eof(TrLexer *l);
-void lexer_advance(TrLexer *l);
+char lexer_advance(TrLexer *l);
 char lexer_peek(TrLexer *l, int offset);
-void lexer_scan(TrLexer *l);
-void lexer_scan_kw(TrLexer *l);
-void lexer_scan_numeric(TrLexer *l);
-void lexer_push(TrLexer *l, Token token);
+bool lexer_match(TrLexer *l, char expect);
+TrToken lexer_poll(TrLexer *l);
 
-Token token_init(enum TokenType type, char *value, int length, int line);
-
+TrToken lexer_scan_kw(TrLexer *l);
+TrToken lexer_scan_number(TrLexer *l);
 #endif

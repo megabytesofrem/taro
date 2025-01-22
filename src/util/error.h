@@ -16,8 +16,7 @@ static inline void taro_log(enum LogLevel level, const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
 
-    switch (level)
-    {
+    switch (level) {
     case LOG_INFO:
         printf("[INFO] ");
         break;
