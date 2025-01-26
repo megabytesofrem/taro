@@ -68,8 +68,8 @@ typedef struct
     int reserved_kw_count;
 } Lexer;
 
-Lexer taro_lexer_init(char *src);
-void taro_lexer_cleanup(Lexer *l);
+Lexer lexer_init(char *src);
+void lexer_cleanup(Lexer *l);
 
 void format_token(Token t, char *buf);
 

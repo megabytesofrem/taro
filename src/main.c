@@ -1,29 +1,42 @@
 #include "lexer.h"
+#include "runtime/gc.h"
+#include "runtime/vm.h"
 
 #include <stdio.h>
 #include <strings.h> // For bzero
 
 int main()
 {
-    Lexer l = taro_lexer_init("if x >= 1234 then\n0.1234\n else def end");
+    // Lexer l = lexer_init("if x >= 1234 then\n0.1234\n else def end");
 
-    char buf[32] = {0};
+    // VM testing ground
+    VM vm;
+    vm_init(&vm);
 
-    while (1) {
-        Token t = lexer_poll(&l);
-        if (t.type == TOK_EOF) {
-            printf("EOF\n");
-            break;
-        }
+    Block *block1 = (Block *)vm_alloc_block(&vm, VM_PAGE_SIZE);
+    Block *block2 = (Block *)vm_alloc_block(&vm, VM_PAGE_SIZE);
 
-        bzero(buf, 32);
-        format_token(t, buf);
+    Object **arr = (Object **)malloc(2 * sizeof(Object *));
+    arr[0] = object_create_int(1234);
+    arr[1] = object_create_int(4321);
 
-        printf("token: %s @ %d:%d:%d\n", buf, t.line, t.start, t.end);
-    }
+    block1->obj = object_create_array(arr, 2, 2, true);
 
-    printf("Done lexing\n");
-    taro_lexer_cleanup(&l);
+    if (block1 != NULL)
+        printf("block1: %p\n", (void *)block1);
+
+    if (block2 != NULL)
+        printf("block2: %p\n", (void *)block2);
+
+    block2->obj = object_create_int(1234);
+
+    // Trigger GC cleanup
+    // gc_collect(&vm);
+
+    vm_free_block(&vm, block1);
+    vm_free_block(&vm, block2);
+
+    vm_cleanup(&vm);
 
     return 0;
 }

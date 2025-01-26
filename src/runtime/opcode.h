@@ -1,0 +1,26 @@
+#ifndef TARO_OPCODE_IMPL
+#define TARO_OPCODE_IMPL
+
+enum VMOpcode
+{
+    OP_PUSH,
+    OP_POP,
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
+    OP_JUMP,
+    OP_JUMP_IF,
+    OP_PUSH_FRAME,
+    OP_POP_FRAME,
+};
+
+typedef struct VMInstruction
+{
+    enum VMOpcode opcode;
+    int operands_count;
+    Object *operand1;
+    Object *operand2;
+} VMInstruction;
+
+#endif

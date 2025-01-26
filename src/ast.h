@@ -61,7 +61,7 @@ typedef struct
 
 ASTNode *ast_node_create(enum TrNodeKind kind, ASTNode *left, ASTNode *right)
 {
-    ASTNode *node = (ASTNode *)(sizeof(ASTNode));
+    ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));
     node->kind = kind;
     node->left = left;
     node->right = right;

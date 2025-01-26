@@ -23,7 +23,7 @@ typedef struct
     Token curr;
 } Parser;
 
-Parser taro_parser_init(Lexer *l);
-void taro_parser_cleanup(Parser *p);
+Parser parser_init(Lexer *l);
+void parser_cleanup(Parser *p);
 
 #endif

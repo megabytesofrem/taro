@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-Lexer taro_lexer_init(char *src)
+Lexer lexer_init(char *src)
 {
     Lexer l;
     l.src = src;
@@ -12,7 +12,7 @@ Lexer taro_lexer_init(char *src)
     l.current = 0;
 
     // Reserved keywords
-    static TrKeyword reserved_kw[] = {
+    static Keyword reserved_kw[] = {
         {"if",       TOK_KWIF      },
         {"then",     TOK_KWTHEN    },
         {"else",     TOK_KWELSE    },
@@ -23,12 +23,12 @@ Lexer taro_lexer_init(char *src)
     };
 
     l.reserved_kw = reserved_kw;
-    l.reserved_kw_count = (sizeof(reserved_kw) / sizeof(TrKeyword));
+    l.reserved_kw_count = (sizeof(reserved_kw) / sizeof(Keyword));
 
     return l;
 }
 
-void taro_lexer_cleanup(Lexer *l)
+void lexer_cleanup(Lexer *l)
 {
     l->src = NULL;
     l->line = 0;
@@ -36,9 +36,9 @@ void taro_lexer_cleanup(Lexer *l)
     l->current = 0;
 }
 
-static TrToken make_token(Lexer *l, enum TokenType type, char *value, int length)
+static Token make_token(Lexer *l, enum TokenType type, char *value, int length)
 {
-    TrToken t;
+    Token t;
     t.type = type;
     t.value = strdup(value);
     t.line = l->line;
@@ -48,9 +48,9 @@ static TrToken make_token(Lexer *l, enum TokenType type, char *value, int length
     return t;
 }
 
-static TrToken make_error(Lexer *l, const char *message)
+static Token make_error(Lexer *l, const char *message)
 {
-    TrToken t;
+    Token t;
     t.type = TOK_ERR;
     t.value = strdup(message);
     t.line = l->line;
@@ -80,7 +80,7 @@ static void skip_whitespace(Lexer *l)
     }
 }
 
-void format_token(TrToken t, char *buf)
+void format_token(Token t, char *buf)
 {
     if (buf == NULL) {
         log_error("buffer provided to format_token was NULL\n");
@@ -211,7 +211,7 @@ bool lexer_match(Lexer *l, char expect)
     return true;
 }
 
-TrToken lexer_poll(Lexer *l)
+Token lexer_poll(Lexer *l)
 {
     skip_whitespace(l);
     l->start = l->current;
@@ -259,7 +259,7 @@ TrToken lexer_poll(Lexer *l)
     return make_error(l, "unexpected character");
 }
 
-TrToken lexer_scan_kw(Lexer *l)
+Token lexer_scan_kw(Lexer *l)
 {
     // Find the start of the keyword or identifier
     l->start = l->current - 1;
@@ -286,13 +286,13 @@ TrToken lexer_scan_kw(Lexer *l)
         }
     }
 
-    TrToken token = make_token(l, type, text, length);
+    Token token = make_token(l, type, text, length);
     free(text);
 
     return token;
 }
 
-TrToken lexer_scan_number(Lexer *l)
+Token lexer_scan_number(Lexer *l)
 {
     // Find the start of the number
     l->start = l->current;
@@ -316,7 +316,7 @@ TrToken lexer_scan_number(Lexer *l)
     int length = l->current - l->start;
     char *text = strndup(l->src + l->start, length);
 
-    TrToken token = make_token(l, TOK_INT, text, length);
+    Token token = make_token(l, TOK_INT, text, length);
 
     if (floating) {
         token.type = TOK_FLOAT;
