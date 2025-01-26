@@ -3,9 +3,9 @@
 
 #include <stdio.h>
 
-TrLexer taro_lexer_init(char *src)
+Lexer taro_lexer_init(char *src)
 {
-    TrLexer l;
+    Lexer l;
     l.src = src;
     l.line = 1;
     l.start = 0;
@@ -28,7 +28,7 @@ TrLexer taro_lexer_init(char *src)
     return l;
 }
 
-void taro_lexer_cleanup(TrLexer *l)
+void taro_lexer_cleanup(Lexer *l)
 {
     l->src = NULL;
     l->line = 0;
@@ -36,7 +36,7 @@ void taro_lexer_cleanup(TrLexer *l)
     l->current = 0;
 }
 
-static TrToken make_token(TrLexer *l, enum TrTokenType type, char *value, int length)
+static TrToken make_token(Lexer *l, enum TokenType type, char *value, int length)
 {
     TrToken t;
     t.type = type;
@@ -48,7 +48,7 @@ static TrToken make_token(TrLexer *l, enum TrTokenType type, char *value, int le
     return t;
 }
 
-static TrToken make_error(TrLexer *l, const char *message)
+static TrToken make_error(Lexer *l, const char *message)
 {
     TrToken t;
     t.type = TOK_ERR;
@@ -60,7 +60,7 @@ static TrToken make_error(TrLexer *l, const char *message)
     return t;
 }
 
-static void skip_whitespace(TrLexer *l)
+static void skip_whitespace(Lexer *l)
 {
     while (!lexer_eof(l)) {
         char c = lexer_peek(l, 0);
@@ -102,6 +102,12 @@ void format_token(TrToken t, char *buf)
         break;
     case TOK_COMMENT:
         sprintf(buf, "TOK_COMMENT(%s)", t.value);
+        break;
+    case TOK_ERR:
+        sprintf(buf, "TOK_ERR(%s)", t.value);
+        break;
+    case TOK_EOF:
+        sprintf(buf, "TOK_EOF");
         break;
     case TOK_PLUS:
         sprintf(buf, "TOK_PLUS");
@@ -169,12 +175,12 @@ void format_token(TrToken t, char *buf)
     }
 }
 
-bool lexer_eof(TrLexer *l)
+bool lexer_eof(Lexer *l)
 {
     return l->current >= strlen(l->src);
 }
 
-char lexer_advance(TrLexer *l)
+char lexer_advance(Lexer *l)
 {
     if (lexer_eof(l)) {
         log_error("cannot advance lexer past EOF\n");
@@ -188,12 +194,12 @@ char lexer_advance(TrLexer *l)
     return l->src[l->current - 1];
 }
 
-char lexer_peek(TrLexer *l, int offset)
+char lexer_peek(Lexer *l, int offset)
 {
     return l->src[l->current + offset] != '\0' ? l->src[l->current + offset] : '\0';
 }
 
-bool lexer_match(TrLexer *l, char expect)
+bool lexer_match(Lexer *l, char expect)
 {
     if (lexer_eof(l))
         return false;
@@ -205,7 +211,7 @@ bool lexer_match(TrLexer *l, char expect)
     return true;
 }
 
-TrToken lexer_poll(TrLexer *l)
+TrToken lexer_poll(Lexer *l)
 {
     skip_whitespace(l);
     l->start = l->current;
@@ -253,7 +259,7 @@ TrToken lexer_poll(TrLexer *l)
     return make_error(l, "unexpected character");
 }
 
-TrToken lexer_scan_kw(TrLexer *l)
+TrToken lexer_scan_kw(Lexer *l)
 {
     // Find the start of the keyword or identifier
     l->start = l->current - 1;
@@ -272,7 +278,7 @@ TrToken lexer_scan_kw(TrLexer *l)
     char *text = strndup(l->src + l->start, length);
 
     // Check if the keyword is a reserved keyword
-    enum TrTokenType type = TOK_IDENTIFIER;
+    enum TokenType type = TOK_IDENTIFIER;
     for (int i = 0; i < l->reserved_kw_count; i++) {
         if (strcmp(text, l->reserved_kw[i].name) == 0) {
             type = l->reserved_kw[i].type;
@@ -286,7 +292,7 @@ TrToken lexer_scan_kw(TrLexer *l)
     return token;
 }
 
-TrToken lexer_scan_number(TrLexer *l)
+TrToken lexer_scan_number(Lexer *l)
 {
     // Find the start of the number
     l->start = l->current;

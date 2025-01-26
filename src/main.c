@@ -5,13 +5,14 @@
 
 int main()
 {
-    TrLexer l = taro_lexer_init("if x >= 1234 then\n0.1234\n else def end");
+    Lexer l = taro_lexer_init("if x >= 1234 then\n0.1234\n else def end");
 
     char buf[32] = {0};
 
     while (1) {
-        TrToken t = lexer_poll(&l);
+        Token t = lexer_poll(&l);
         if (t.type == TOK_EOF) {
+            printf("EOF\n");
             break;
         }
 
