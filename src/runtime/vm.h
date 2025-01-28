@@ -1,20 +1,23 @@
 #ifndef TARO_VM
 #define TARO_VM
 
-#include "object.h"
 #include "opcode.h"
+#include "value.h"
 
-#define VM_STACK_SIZE 16384 // 16KB
-#define VM_PAGE_SIZE 4096
+#include <pthread.h>
+
+#define VM_STACK_MAX_SIZE 16384 // 16KB
 
 /**
- * Contiguous memory block aligned to 4KB pages
+ * An object on the heap with a pointer to the next object
  */
-typedef struct Block
+typedef struct HeapObject
 {
-    Object *obj;
-    struct Block *next;
-} Block;
+    Value *obj;
+    struct HeapObject *next;
+
+    bool free;
+} HeapObject;
 
 /**
  * Stack frame
@@ -22,14 +25,14 @@ typedef struct Block
 typedef struct Frame
 {
     int addr; // Instruction pointer
-    Object **locals;
+    Value **locals;
     int locals_count;
     int return_addr;
     int *saved_regs;
     int saved_regs_count;
 
     // Function parameters, if any
-    Object **params;
+    Value **params;
     int params_count;
 
     // Parent frame
@@ -47,8 +50,14 @@ typedef struct
     Frame **stack;
     int stack_len;
 
-    Block *heap_free_list;  // Free list of heap memory
-    Block *heap_alloc_list; // List of allocated heap memory
+    // GC - see gc.c for implementation
+    pthread_mutex_t gc_mutex;
+    pthread_t gc_thread;
+    bool stop_gc;
+    int gc_counter;
+    int gc_threshold;
+
+    HeapObject *heap;
 } VM;
 
 void vm_init(VM *vm);
@@ -58,13 +67,13 @@ void *vm_stack_alloc(VM *vm, Frame *frame);
 void vm_stack_free(VM *vm, Frame *frame);
 
 /**
- * Allocate a block of heap-allocated memory of size `size`
+ * Allocate an object on the heap
  */
-void *vm_alloc_block(VM *vm, size_t size);
+void *vm_heap_alloc(VM *vm, size_t size);
 
 /**
- * Free a block of heap-allocated memory
+ * Free an object on the heap
  */
-void vm_free_block(VM *vm, void *pblock);
+void vm_heap_free(VM *vm, void *pentry);
 
 #endif

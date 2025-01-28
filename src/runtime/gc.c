@@ -1,23 +1,32 @@
 #include "gc.h"
 
-/** Primitive GC algorithm */
+#include <pthread.h>
+#include <unistd.h>
 
-void gc_mark(Object *obj)
+/**
+ * Mark and sweep garbage collector written overnight.
+ */
+
+void vm_heap_free(VM *vm, void *pentry);
+
+void gc_mark(Value *val)
 {
-    if (obj == NULL || obj->marked)
+    if (val == NULL || val->marked)
         return;
 
     // Mark the object
-    obj->marked = true;
+    val->marked = true;
+
+    printf("GC: marking value at %p\n", (void *)val);
 
     // Managed objects hold references to other objects
-    if (object_is_gc_managed(obj)) {
-        log_info("marking object at %p\n", (void *)obj);
-        for (int i = 0; i < obj->s_children_count; i++) {
-            if (obj->s_children[i] != NULL) {
-                gc_mark(obj->s_children[i]);
-            } else {
-                log_info("skipping NULL child at index %d\n", i);
+    if (value_is_gc_managed(val)) {
+        if (val->s_children != NULL) {
+            for (int i = 0; i < val->s_children_count; i++) {
+                if (val->s_children[i] != NULL) {
+                    printf("GC: marking child %d at %p\n", i, (void *)val->s_children[i]);
+                    gc_mark(val->s_children[i]);
+                }
             }
         }
     }
@@ -25,54 +34,57 @@ void gc_mark(Object *obj)
 
 void gc_mark_all(VM *vm)
 {
-    Block *block = vm->heap_alloc_list;
-    while (block) {
-        gc_mark(block->obj);
-        block = block->next;
+    // Iterate through the heap allocation list and mark all objects
+    printf("GC: marking all objects in the heap\n");
+
+    HeapObject *entry = vm->heap;
+    while (entry) {
+        if (entry->obj != NULL) {
+            printf("GC: marking object at %p\n", (void *)entry->obj);
+            gc_mark(entry->obj);
+        }
+        entry = entry->next;
     }
 }
 
 void gc_sweep(VM *vm)
 {
-    Block **block = &vm->heap_alloc_list;
-    while (*block) {
-        Object *obj = (*block)->obj;
+    printf("GC: performing a sweep\n");
+    HeapObject *entry = vm->heap;
 
-        if (obj->marked) {
-            obj->marked = false; // Unmark for the next GC cycle
-            block = &(*block)->next;
+    while (entry) {
+        if (entry->obj != NULL) {
+            printf("GC: examining entry at %p, marked: %d\n", (void *)entry,
+                   entry->obj->marked);
+        }
+
+        if (entry->obj == NULL || !entry->obj->marked) {
+            // This entry was not reached, so free it
+            HeapObject *unreached = entry;
+            entry = unreached->next;
+
+            vm_heap_free(vm, unreached);
         } else {
-            Block *unmarked = *block;
-
-            // Remove the block from the allocation list
-            *block = unmarked->next;
-
-            // Free the object and add the block to the free list
-            free(unmarked->obj);
-            unmarked->obj = NULL;
-
-            unmarked->next = vm->heap_free_list;
-            vm->heap_free_list = unmarked;
+            // This entry was reached, so unmark it for the next GC cycle
+            printf("GC: unmarking object at %p for next cycle\n", (void *)entry->obj);
+            entry->obj->marked = false;
+            entry = entry->next;
         }
     }
 }
 
 void gc_collect(VM *vm)
 {
-    printf("Before GC:\n");
-    Block *block = vm->heap_alloc_list;
-    while (block) {
-        printf("block at %p, object at %p\n", (void *)block, (void *)block->obj);
-        block = block->next;
+    printf("\n\nBefore GC:\n\n");
+    HeapObject *entry = vm->heap;
+    while (entry != NULL) {
+        printf("entry at %p, is free: %d\n", (void *)entry, entry->free);
+        entry = entry->next;
     }
 
     gc_mark_all(vm);
-    gc_sweep(vm);
 
-    printf("After GC:\n");
-    block = vm->heap_alloc_list;
-    while (block) {
-        printf("block at %p, object at %p\n", (void *)block, (void *)block->obj);
-        block = block->next;
-    }
+    // Sweep once and then once more to ensure all unreachable objects are freed
+    gc_sweep(vm);
+    gc_sweep(vm);
 }

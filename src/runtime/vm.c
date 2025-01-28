@@ -1,28 +1,69 @@
 #include "vm.h"
+#include "gc.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+// Background GC thread function
+static void *gc_thread_func(void *arg)
+{
+    VM *vm = (VM *)arg;
+
+    while (!vm->stop_gc) {
+        pthread_mutex_lock(&vm->gc_mutex);
+        if (vm->gc_counter >= vm->gc_threshold) {
+            pthread_mutex_unlock(&vm->gc_mutex);
+            gc_collect(vm);
+        } else {
+            pthread_mutex_unlock(&vm->gc_mutex);
+        }
+
+        // Sleep for a short duration to prevent busy waiting
+        usleep(100000); // 100ms
+    }
+
+    log_info("GC thread exiting...\n");
+    return NULL;
+}
 
 void vm_init(VM *vm)
 {
-    vm->stack = (Frame **)malloc(VM_STACK_SIZE * sizeof(Frame *));
+    vm->stack = (Frame **)malloc(VM_STACK_MAX_SIZE * sizeof(Frame *));
     vm->stack_len = 0;
 
-    vm->heap_free_list = NULL;
-    vm->heap_alloc_list = NULL;
+    vm->heap = NULL;
+    vm->gc_counter = 0;
+    vm->gc_threshold = 5;
+    vm->stop_gc = false;
+
+    pthread_mutex_init(&vm->gc_mutex, NULL);
+    if (pthread_create(&vm->gc_thread, NULL, gc_thread_func, vm) != 0) {
+        log_error("failed to create GC thread\n");
+    }
+
+    // Detach so the thread runs in the background
+    pthread_detach(vm->gc_thread);
 }
 
 void vm_cleanup(VM *vm)
 {
+    pthread_mutex_lock(&vm->gc_mutex);
+    vm->stop_gc = true;
+    pthread_mutex_unlock(&vm->gc_mutex);
+
     free(vm->stack);
     vm->stack = NULL;
 
-    Block *block = vm->heap_free_list;
-    while (block) {
-        Block *next = block->next;
-        free(block);
-        block = next;
+    HeapObject *entry = vm->heap;
+    while (entry) {
+        HeapObject *next = entry->next;
+        entry->free = true;
+        free(entry);
+        entry = next;
     }
+
+    pthread_mutex_destroy(&vm->gc_mutex);
 }
 
 void vm_cycle(VM *vm)
@@ -40,7 +81,7 @@ void vm_cycle(VM *vm)
 void *vm_stack_alloc(VM *vm, Frame *frame)
 {
     // Check for stack overflow
-    if (vm->stack_len >= VM_STACK_SIZE) {
+    if (vm->stack_len >= VM_STACK_MAX_SIZE) {
         log_error("VM stack overflow\n");
         return NULL;
     }
@@ -53,75 +94,78 @@ void *vm_stack_alloc(VM *vm, Frame *frame)
 void vm_stack_free(VM *vm, Frame *frame)
 {
     // Find the frame in the stack
-    int i;
-    for (i = 0; i < vm->stack_len; i++) {
-        if (vm->stack[i] == frame) {
+    int frameno;
+
+    for (frameno = 0; frameno < vm->stack_len; frameno++) {
+        if (vm->stack[frameno] == frame) {
             break;
         }
     }
 
-    if (i == vm->stack_len) {
+    if (frameno == vm->stack_len) {
         log_error("failed to free, frame not found in stack\n");
         return;
     }
 
     // Shift the stack down
-    for (int j = i; j < vm->stack_len - 1; j++) {
+    for (int j = frameno; j < vm->stack_len - 1; j++) {
         vm->stack[j] = vm->stack[j + 1];
     }
 
     vm->stack_len--;
 }
 
-void *vm_alloc_block(VM *vm, size_t size)
+void *vm_heap_alloc(VM *vm, size_t size)
 {
-    Block *block;
-    if (vm->heap_free_list == NULL) {
-        // Allocate a new block
-        block = (Block *)aligned_alloc(VM_PAGE_SIZE, sizeof(Block));
-        if (block == NULL) {
-            log_error("failed to allocate memory for block\n");
-            return NULL;
+    HeapObject *entry = vm->heap;
+
+    // Try to find a free space
+    while (entry != NULL) {
+        if (entry->free) {
+            entry->free = false;
+            return (void *)entry;
         }
-    } else {
-        // Reuse a block from the free list
-        log_warn("reusing block at %p\n", (void *)vm->heap_free_list);
-        block = vm->heap_free_list;
-        vm->heap_free_list = block->next;
+
+        entry = entry->next;
     }
 
-    // Add the block to the list of allocated blocks
-    block->next = vm->heap_alloc_list;
-    vm->heap_alloc_list = block;
+    // Allocate a new entry, if no free block is found
+    entry = (HeapObject *)malloc(sizeof(HeapObject) + size);
+    if (entry == NULL) {
+        log_error("failed to allocate memory for block\n");
+        return NULL;
+    }
 
-    block->obj = object_create(OBJ_UNKNOWN);
-    return (void *)block;
+    // Add the entry to the list of allocated blocks
+    entry->next = vm->heap;
+    vm->heap = entry;
+    entry->obj = value_create(TY_UNKNOWN);
+    entry->free = false;
+
+    vm->gc_counter++;
+    return (void *)entry;
 }
 
-void vm_free_block(VM *vm, void *pblock)
+void vm_heap_free(VM *vm, void *pblock)
 {
     if (pblock == NULL) {
         log_error("cannot free a NULL block\n");
         return;
     }
 
-    log_info("freeing block at %p\n", pblock);
-    Block *block = (Block *)pblock;
+    log_info("freeing entry at %p\n", pblock);
+    HeapObject *entry = (HeapObject *)pblock;
 
-    // Remove the block from the list of allocated blocks
-    Block **cur = &vm->heap_alloc_list;
-    while (*cur && *cur != block) {
-        cur = &(*cur)->next;
+    // Prevent double-free, only free if we haven't already
+    if (!entry->free) {
+        if (entry->obj) {
+            if (entry->obj->s_children) {
+                free(entry->obj->s_children);
+            }
+            free(entry->obj);
+        }
+
+        entry->free = true;
+        // vm->gc_counter--;
     }
-
-    if (*cur) {
-        *cur = block->next;
-    } else {
-        log_error("block not found in allocated list\n");
-    }
-
-    // Add the block to the free list
-    block->next = vm->heap_free_list;
-    block->obj = NULL;
-    vm->heap_free_list = block;
 }

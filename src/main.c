@@ -4,6 +4,19 @@
 
 #include <stdio.h>
 #include <strings.h> // For bzero
+#include <unistd.h>
+
+HeapObject *create_object(VM *vm)
+{
+    HeapObject *obj = (HeapObject *)vm_heap_alloc(vm, 0);
+    Value **val = (Value **)malloc(3 * sizeof(Value *));
+    val[0] = value_create_int(1);
+    val[1] = value_create_int(2);
+    val[2] = value_create_int(3);
+
+    obj->obj = value_create_array(val, 3, 3, true);
+    return obj;
+}
 
 int main()
 {
@@ -13,29 +26,12 @@ int main()
     VM vm;
     vm_init(&vm);
 
-    Block *block1 = (Block *)vm_alloc_block(&vm, VM_PAGE_SIZE);
-    Block *block2 = (Block *)vm_alloc_block(&vm, VM_PAGE_SIZE);
+    for (int i = 0; i < 5; i++) {
+        HeapObject *obj = create_object(&vm);
+        printf("created object at %p\n", (void *)obj);
+    }
 
-    Object **arr = (Object **)malloc(2 * sizeof(Object *));
-    arr[0] = object_create_int(1234);
-    arr[1] = object_create_int(4321);
-
-    block1->obj = object_create_array(arr, 2, 2, true);
-
-    if (block1 != NULL)
-        printf("block1: %p\n", (void *)block1);
-
-    if (block2 != NULL)
-        printf("block2: %p\n", (void *)block2);
-
-    block2->obj = object_create_int(1234);
-
-    // Trigger GC cleanup
-    // gc_collect(&vm);
-
-    vm_free_block(&vm, block1);
-    vm_free_block(&vm, block2);
-
+    sleep(2);
     vm_cleanup(&vm);
 
     return 0;

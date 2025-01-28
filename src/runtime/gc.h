@@ -1,11 +1,12 @@
 #ifndef TARO_GC_IMPL
 #define TARO_GC_IMPL
 
-#include "object.h"
+#include "value.h"
 #include "vm.h"
 
-// FIXME: Broken GC implementation
-void gc_mark(Object *obj);
+void gc_create_thread(VM *vm);
+
+void gc_mark(Value *val);
 void gc_mark_all(VM *vm);
 void gc_perform_sweep(VM *vm);
 void gc_collect(VM *vm);

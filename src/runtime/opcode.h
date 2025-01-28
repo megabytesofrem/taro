@@ -1,6 +1,8 @@
 #ifndef TARO_OPCODE_IMPL
 #define TARO_OPCODE_IMPL
 
+#include "value.h"
+
 enum VMOpcode
 {
     OP_PUSH,
@@ -19,8 +21,7 @@ typedef struct VMInstruction
 {
     enum VMOpcode opcode;
     int operands_count;
-    Object *operand1;
-    Object *operand2;
+    Value **operands;
 } VMInstruction;
 
 #endif
