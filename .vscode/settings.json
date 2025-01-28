@@ -13,6 +13,7 @@
         "text_encoding": "c",
         "stdio.h": "c",
         "cmath": "cpp",
-        "lexer.h": "c"
+        "lexer.h": "c",
+        "vm.h": "c"
     }
 }

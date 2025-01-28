@@ -1,6 +1,8 @@
 #ifndef TARO_GC_IMPL
 #define TARO_GC_IMPL
 
+#define GC_DEBUG 1
+
 #include "value.h"
 #include "vm.h"
 

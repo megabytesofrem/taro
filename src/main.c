@@ -24,11 +24,23 @@ int main()
 
     // VM testing ground
     VM vm;
-    vm_init(&vm);
+    vm_init(&vm, VM_DEFAULT_GC_THRESHOLD);
 
-    for (int i = 0; i < 5; i++) {
+    VMInstruction instructions[] = {
+        {OP_PUSH, 1, (Value *[]){value_create_int(1)}},
+        {OP_PUSH, 1, (Value *[]){value_create_int(2)}},
+    };
+
+    vm_load(&vm, instructions, 2);
+
+    for (int i = 0; i < 5000; i++) {
         HeapObject *obj = create_object(&vm);
         printf("created object at %p\n", (void *)obj);
+    }
+
+    while (true) {
+        sleep(1);
+        vm_cycle(&vm);
     }
 
     sleep(2);

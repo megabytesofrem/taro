@@ -15,6 +15,7 @@ enum VMOpcode
     OP_JUMP_IF,
     OP_PUSH_FRAME,
     OP_POP_FRAME,
+    OP_END,
 };
 
 typedef struct VMInstruction

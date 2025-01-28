@@ -27,14 +27,17 @@ static void *gc_thread_func(void *arg)
     return NULL;
 }
 
-void vm_init(VM *vm)
+void vm_init(VM *vm, int gc_threshold)
 {
+    vm->ip = 0;
+    vm->code = NULL;
+    vm->code_size = 0;
     vm->stack = (Frame **)malloc(VM_STACK_MAX_SIZE * sizeof(Frame *));
     vm->stack_len = 0;
 
     vm->heap = NULL;
     vm->gc_counter = 0;
-    vm->gc_threshold = 5;
+    vm->gc_threshold = gc_threshold;
     vm->stop_gc = false;
 
     pthread_mutex_init(&vm->gc_mutex, NULL);
@@ -66,13 +69,33 @@ void vm_cleanup(VM *vm)
     pthread_mutex_destroy(&vm->gc_mutex);
 }
 
+void vm_load(VM *vm, VMInstruction *code, int len)
+{
+    vm->code = code;
+    vm->code_size = len;
+
+    log_info("loaded %d instructions\n", vm->code_size);
+}
+
 void vm_cycle(VM *vm)
 {
     // Fetch-decode-execute cycle
+
+    if (vm->code == NULL) {
+        log_error("no code loaded\n");
+        return;
+    }
+
+    if (vm->ip >= vm->code_size) {
+        log_error("instruction pointer out of bounds\n");
+        return;
+    }
+
     VMInstruction ins = vm->code[vm->ip++];
+
     switch (ins.opcode) {
     default: {
-        log_error("unimplemented opcode %d\n", ins.opcode);
+        printf("unimplemented opcode %d\n", ins.opcode);
         break;
     }
     }
@@ -153,7 +176,10 @@ void vm_heap_free(VM *vm, void *pblock)
         return;
     }
 
+#ifdef GC_DEBUG
     log_info("freeing entry at %p\n", pblock);
+#endif
+
     HeapObject *entry = (HeapObject *)pblock;
 
     // Prevent double-free, only free if we haven't already

@@ -6,6 +6,7 @@
 
 #include <pthread.h>
 
+#define VM_DEFAULT_GC_THRESHOLD 1000
 #define VM_STACK_MAX_SIZE 16384 // 16KB
 
 /**
@@ -30,8 +31,6 @@ typedef struct Frame
     int return_addr;
     int *saved_regs;
     int saved_regs_count;
-
-    // Function parameters, if any
     Value **params;
     int params_count;
 
@@ -45,6 +44,7 @@ typedef struct
 
     // VM instructions
     VMInstruction *code;
+    int code_size;
 
     // Stack
     Frame **stack;
@@ -60,7 +60,8 @@ typedef struct
     HeapObject *heap;
 } VM;
 
-void vm_init(VM *vm);
+void vm_init(VM *vm, int gc_threshold);
+void vm_load(VM *vm, VMInstruction *code, int len);
 void vm_cleanup(VM *vm);
 void vm_cycle(VM *vm);
 void *vm_stack_alloc(VM *vm, Frame *frame);
