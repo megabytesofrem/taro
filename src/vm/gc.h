@@ -1,6 +1,7 @@
-#ifndef TARO_GC_IMPL
-#define TARO_GC_IMPL
+#ifndef TARO_VM_GC
+#define TARO_VM_GC
 
+/* If defined, the GC will log debug messages for allocations */
 #define GC_DEBUG 1
 
 #include "value.h"

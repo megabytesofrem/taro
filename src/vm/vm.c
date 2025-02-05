@@ -30,6 +30,25 @@ static void *gc_thread_func(void *arg)
 void vm_init(VM *vm, int gc_threshold)
 {
     vm->ip = 0;
+
+    // Copy the opcode handlers into the VM
+    _VMHandlers handlers = {
+        [OP_ADD] = _op_add,
+        [OP_SUB] = _op_sub,
+        [OP_MUL] = _op_mul,
+        [OP_DIV] = _op_div,
+        [OP_CMP] = _op_cmp,
+        [OP_JUMP] = _op_jump,
+        [OP_JUMP_IF] = _op_jump_if,
+        [OP_ALLOC] = _op_alloc,
+        [OP_PUSH_FRAME] = _op_push_frame,
+        [OP_LOCAL_SET] = _op_local_set,
+        [OP_LOCAL_GET] = _op_local_get,
+        // [OP_CALL] = _op_call,
+    };
+
+    memcpy(vm->handlers, handlers, sizeof(handlers));
+
     vm->code = NULL;
     vm->code_size = 0;
     vm->stack = (Frame **)malloc(VM_STACK_MAX_SIZE * sizeof(Frame *));
@@ -92,16 +111,10 @@ void vm_cycle(VM *vm)
     }
 
     VMInstruction ins = vm->code[vm->ip++];
-
-    switch (ins.opcode) {
-    default: {
-        printf("unimplemented opcode %d\n", ins.opcode);
-        break;
-    }
-    }
+    vm->handlers[ins.opcode](vm, &ins);
 }
 
-void *vm_stack_alloc(VM *vm, Frame *frame)
+void *vm_stack_push(VM *vm, Frame *frame)
 {
     // Check for stack overflow
     if (vm->stack_len >= VM_STACK_MAX_SIZE) {
@@ -138,7 +151,7 @@ void vm_stack_free(VM *vm, Frame *frame)
     vm->stack_len--;
 }
 
-void *vm_heap_alloc(VM *vm, size_t size)
+Value *vm_heap_alloc(VM *vm, size_t size)
 {
     HeapObject *entry = vm->heap;
 
@@ -162,11 +175,11 @@ void *vm_heap_alloc(VM *vm, size_t size)
     // Add the entry to the list of allocated blocks
     entry->next = vm->heap;
     vm->heap = entry;
-    entry->obj = value_create(TY_UNKNOWN);
+    entry->value = value_create(TY_UNKNOWN);
     entry->free = false;
 
     vm->gc_counter++;
-    return (void *)entry;
+    return entry->value;
 }
 
 void vm_heap_free(VM *vm, void *pblock)
@@ -184,14 +197,122 @@ void vm_heap_free(VM *vm, void *pblock)
 
     // Prevent double-free, only free if we haven't already
     if (!entry->free) {
-        if (entry->obj) {
-            if (entry->obj->s_children) {
-                free(entry->obj->s_children);
+        if (entry->value) {
+            if (entry->value->s_children) {
+                free(entry->value->s_children);
             }
-            free(entry->obj);
+            free(entry->value);
         }
 
         entry->free = true;
         // vm->gc_counter--;
     }
+}
+
+/* Opcode handling */
+
+void _op_add(VM *vm, VMInstruction *ins)
+{
+}
+
+void _op_sub(VM *vm, VMInstruction *ins)
+{
+}
+
+void _op_mul(VM *vm, VMInstruction *ins)
+{
+}
+
+void _op_div(VM *vm, VMInstruction *ins)
+{
+}
+
+void _op_cmp(VM *vm, VMInstruction *ins)
+{
+    // Compare two values and set flag
+    Value *a = &ins->operands[0];
+    Value *b = &ins->operands[1];
+
+    if (a->type != b->type) {
+        log_error("cannot compare values of different types\n");
+        return;
+    }
+
+    if (a->type == TY_INT) {
+        vm->flag = a->data.int_value == b->data.int_value;
+    } else if (a->type == TY_FLOAT) {
+        vm->flag = a->data.float_value == b->data.float_value;
+    } else {
+        log_error("unsupported type for comparison\n");
+    }
+}
+
+void _op_jump(VM *vm, VMInstruction *ins)
+{
+    // Jump to the specified instruction
+    vm->ip = ins->operands[0].data.int_value;
+}
+
+void _op_jump_if(VM *vm, VMInstruction *ins)
+{
+    // Jump if the condition is true
+    if (vm->flag == 1) {
+        vm->ip = ins->operands[1].data.int_value;
+    }
+}
+
+void _op_alloc(VM *vm, VMInstruction *ins)
+{
+    // Allocate a new object on the heap
+    int size = ins->operands[0].data.int_value;
+
+    Value *value = vm_heap_alloc(vm, size);
+    Frame *cur_frame = vm->stack[vm->stack_len - 1];
+
+    if (cur_frame->locals_count >= VM_STACK_MAX_SIZE) {
+        log_error("frame locals overflow\n");
+        return;
+    }
+
+    cur_frame->locals[cur_frame->locals_count++] = value;
+}
+
+void _op_push_frame(VM *vm, VMInstruction *ins)
+{
+    // Push a new frame onto the stack
+    Frame *frame = (Frame *)malloc(sizeof(Frame));
+
+    vm_stack_push(vm, frame);
+}
+
+void _op_local_set(VM *vm, VMInstruction *ins)
+{
+    // Set a local variable in the current frame
+    Frame *cur_frame = vm->stack[vm->stack_len - 1];
+    Value *value = &ins->operands[0];
+
+    if (cur_frame->locals_count >= VM_STACK_MAX_SIZE) {
+        log_error("frame locals overflow\n");
+        return;
+    }
+
+    cur_frame->locals[cur_frame->locals_count++] = value;
+}
+
+void _op_local_get(VM *vm, VMInstruction *ins)
+{
+    // Get a local variable from the current frame
+    Frame *cur_frame = vm->stack[vm->stack_len - 1];
+
+    if (cur_frame->locals_count == 0) {
+        log_error("frame locals underflow\n");
+        return;
+    }
+
+    // Value *value = cur_frame->locals[--cur_frame->locals_count];
+}
+
+void _op_call(VM *vm, VMInstruction *ins)
+{
+    // Call a function
 }

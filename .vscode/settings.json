@@ -14,6 +14,10 @@
         "stdio.h": "c",
         "cmath": "cpp",
         "lexer.h": "c",
-        "vm.h": "c"
+        "vm.h": "c",
+        "value.h": "c",
+        "stdbool.h": "c",
+        "opcode.h": "c",
+        "gc.h": "c"
     }
 }

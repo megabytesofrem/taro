@@ -1,6 +1,6 @@
 #include "lexer.h"
-#include "runtime/gc.h"
-#include "runtime/vm.h"
+#include "vm/gc.h"
+#include "vm/vm.h"
 
 #include <stdio.h>
 #include <strings.h> // For bzero
@@ -10,11 +10,11 @@ HeapObject *create_object(VM *vm)
 {
     HeapObject *obj = (HeapObject *)vm_heap_alloc(vm, 0);
     Value **val = (Value **)malloc(3 * sizeof(Value *));
-    val[0] = value_create_int(1);
-    val[1] = value_create_int(2);
-    val[2] = value_create_int(3);
+    val[0] = &INT(1);
+    val[1] = &INT(2);
+    val[2] = &INT(3);
 
-    obj->obj = value_create_array(val, 3, 3, true);
+    obj->value = &ARRAY(val, 3, 3, FIXED_ARRAY);
     return obj;
 }
 
@@ -26,12 +26,12 @@ int main()
     VM vm;
     vm_init(&vm, VM_DEFAULT_GC_THRESHOLD);
 
-    VMInstruction instructions[] = {
-        {OP_PUSH, 1, (Value *[]){value_create_int(1)}},
-        {OP_PUSH, 1, (Value *[]){value_create_int(2)}},
-    };
+    // VMInstruction instructions[] = {
+    //     INST(OP_ALLOC, 1, value_create_int(1)),
+    //     INST(OP_ALLOC, 1, value_create_int(2)),
+    // };
 
-    vm_load(&vm, instructions, 2);
+    // vm_load(&vm, instructions, 3);
 
     for (int i = 0; i < 5000; i++) {
         HeapObject *obj = create_object(&vm);
