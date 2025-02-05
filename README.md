@@ -1,8 +1,11 @@
-# Taro
-Tiny programming language with a Lua like syntax.
+<p align="center">
+    <img src="art/logo.png" width="140"/>
+    <h1 align="center"><b>Taro</b></h1>
+    <p align="center">
+        Tiny programming language with a Lua like syntax.
+    </p>
+</p>
 
-## Syntax Inspiration
-The syntax inspiration is from another language that I created a long time ago, called Tsuki
 
 ## Goals
 - To be written 100% in C code
