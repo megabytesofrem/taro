@@ -1,5 +1,5 @@
-#ifndef TARO_ERROR
-#define TARO_ERROR
+#ifndef TARO_LOGGER
+#define TARO_LOGGER
 
 #include <stdarg.h>
 #include <stdio.h>

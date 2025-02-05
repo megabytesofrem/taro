@@ -1,14 +1,14 @@
 #include "lexer.h"
-#include "util/error.h"
+#include "util/logger.h"
 
 #include <stdio.h>
 
 Lexer lexer_init(char *src)
 {
     Lexer l;
-    l.src = src;
-    l.line = 1;
-    l.start = 0;
+    l.src     = src;
+    l.line    = 1;
+    l.start   = 0;
     l.current = 0;
 
     // Reserved keywords
@@ -22,7 +22,7 @@ Lexer lexer_init(char *src)
         {"function", TOK_KWFUNCTION},
     };
 
-    l.reserved_kw = reserved_kw;
+    l.reserved_kw       = reserved_kw;
     l.reserved_kw_count = (sizeof(reserved_kw) / sizeof(Keyword));
 
     return l;
@@ -30,20 +30,20 @@ Lexer lexer_init(char *src)
 
 void lexer_cleanup(Lexer *l)
 {
-    l->src = NULL;
-    l->line = 0;
-    l->start = 0;
+    l->src     = NULL;
+    l->line    = 0;
+    l->start   = 0;
     l->current = 0;
 }
 
 static Token make_token(Lexer *l, enum TokenType type, char *value, int length)
 {
     Token t;
-    t.type = type;
+    t.type  = type;
     t.value = strdup(value);
-    t.line = l->line;
+    t.line  = l->line;
     t.start = l->start;
-    t.end = length;
+    t.end   = length;
 
     return t;
 }
@@ -51,11 +51,11 @@ static Token make_token(Lexer *l, enum TokenType type, char *value, int length)
 static Token make_error(Lexer *l, const char *message)
 {
     Token t;
-    t.type = TOK_ERR;
+    t.type  = TOK_ERR;
     t.value = strdup(message);
-    t.line = l->line;
+    t.line  = l->line;
     t.start = l->start;
-    t.end = (int)(l->current - l->start);
+    t.end   = (int)(l->current - l->start);
 
     return t;
 }
@@ -319,7 +319,7 @@ Token lexer_scan_number(Lexer *l)
     Token token = make_token(l, TOK_INT, text, length);
 
     if (floating) {
-        token.type = TOK_FLOAT;
+        token.type        = TOK_FLOAT;
         token.float_value = strtof(text, NULL);
     } else {
         token.int_value = strtol(text, NULL, 10);

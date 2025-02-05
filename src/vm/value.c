@@ -1,5 +1,7 @@
 #include "value.h"
 
+#include "../util/logger.h"
+
 Value *value_create(enum TrValueType type)
 {
     Value *val = (Value *)malloc(sizeof(Value));
@@ -8,7 +10,7 @@ Value *value_create(enum TrValueType type)
         return NULL;
     }
 
-    val->type = type;
+    val->type   = type;
     val->marked = false;
 
     return val;

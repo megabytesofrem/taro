@@ -18,6 +18,7 @@
         "value.h": "c",
         "stdbool.h": "c",
         "opcode.h": "c",
-        "gc.h": "c"
+        "gc.h": "c",
+        "frame.h": "c"
     }
 }

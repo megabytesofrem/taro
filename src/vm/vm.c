@@ -5,6 +5,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "../util/logger.h"
+
 // Background GC thread function
 static void *gc_thread_func(void *arg)
 {
@@ -33,31 +35,21 @@ void vm_init(VM *vm, int gc_threshold)
 
     // Copy the opcode handlers into the VM
     _VMHandlers handlers = {
-        [OP_ADD] = _op_add,
-        [OP_SUB] = _op_sub,
-        [OP_MUL] = _op_mul,
-        [OP_DIV] = _op_div,
-        [OP_CMP] = _op_cmp,
-        [OP_JUMP] = _op_jump,
-        [OP_JUMP_IF] = _op_jump_if,
-        [OP_ALLOC] = _op_alloc,
-        [OP_PUSH_FRAME] = _op_push_frame,
-        [OP_LOCAL_SET] = _op_local_set,
-        [OP_LOCAL_GET] = _op_local_get,
-        // [OP_CALL] = _op_call,
+        _nop,  _load_int, _load_float, _load_string, _store_local, _load_local, _addi,
+        _subi, _mul,      _div,        _call,        _return,      _jump,       _jump_z,
     };
 
-    memcpy(vm->handlers, handlers, sizeof(handlers));
+    memcpy(vm->handlers, handlers, sizeof(_VMHandlers));
 
-    vm->code = NULL;
+    vm->code      = NULL;
     vm->code_size = 0;
-    vm->stack = (Frame **)malloc(VM_STACK_MAX_SIZE * sizeof(Frame *));
+    vm->stack     = (Frame **)malloc(VM_STACK_MAX_SIZE * sizeof(Frame *));
     vm->stack_len = 0;
 
-    vm->heap = NULL;
-    vm->gc_counter = 0;
+    vm->heap         = NULL;
+    vm->gc_counter   = 0;
     vm->gc_threshold = gc_threshold;
-    vm->stop_gc = false;
+    vm->stop_gc      = false;
 
     pthread_mutex_init(&vm->gc_mutex, NULL);
     if (pthread_create(&vm->gc_thread, NULL, gc_thread_func, vm) != 0) {
@@ -80,7 +72,7 @@ void vm_cleanup(VM *vm)
     HeapObject *entry = vm->heap;
     while (entry) {
         HeapObject *next = entry->next;
-        entry->free = true;
+        entry->free      = true;
         free(entry);
         entry = next;
     }
@@ -90,10 +82,27 @@ void vm_cleanup(VM *vm)
 
 void vm_load(VM *vm, VMInstruction *code, int len)
 {
-    vm->code = code;
+    if (vm->code != NULL) {
+        free(vm->code);
+    }
+
+    // Allocate memory for new instructions
+    vm->code = (VMInstruction *)malloc(len * sizeof(VMInstruction));
+    if (!vm->code) {
+        log_error("VM: failed to allocate memory for code\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy the code into the VM
+    memcpy(vm->code, code, len * sizeof(VMInstruction));
     vm->code_size = len;
 
-    log_info("loaded %d instructions\n", vm->code_size);
+    // Debug output
+    for (int i = 0; i < len; i++) {
+        printf("%d: %d\n", i, vm->code[i].opcode);
+    }
+
+    log_info("VM: loaded %d instructions\n", len);
 }
 
 void vm_cycle(VM *vm)
@@ -101,24 +110,36 @@ void vm_cycle(VM *vm)
     // Fetch-decode-execute cycle
 
     if (vm->code == NULL) {
-        log_error("no code loaded\n");
+        log_error("VM: no code loaded\n");
         return;
     }
 
     if (vm->ip >= vm->code_size) {
-        log_error("instruction pointer out of bounds\n");
+        log_error("VM: ip out of bounds\n");
         return;
     }
 
-    VMInstruction ins = vm->code[vm->ip++];
+    VMInstruction ins = vm->code[vm->ip];
+    if (ins.opcode >= OPCODE_COUNT) {
+        return;
+    }
+
+    if (vm->handlers[ins.opcode] == NULL) {
+        log_error("VM: null handler for opcode: %d\n", ins.opcode);
+        return;
+    }
+
+    log_info("VM: ip: %d, opcode: %d\n", vm->ip, ins.opcode);
     vm->handlers[ins.opcode](vm, &ins);
+
+    vm->ip++;
 }
 
 void *vm_stack_push(VM *vm, Frame *frame)
 {
     // Check for stack overflow
     if (vm->stack_len >= VM_STACK_MAX_SIZE) {
-        log_error("VM stack overflow\n");
+        log_error("VM: stack overflow\n");
         return NULL;
     }
 
@@ -130,21 +151,21 @@ void *vm_stack_push(VM *vm, Frame *frame)
 void vm_stack_free(VM *vm, Frame *frame)
 {
     // Find the frame in the stack
-    int frameno;
+    int frame_index;
 
-    for (frameno = 0; frameno < vm->stack_len; frameno++) {
-        if (vm->stack[frameno] == frame) {
+    for (frame_index = 0; frame_index < vm->stack_len; frame_index++) {
+        if (vm->stack[frame_index] == frame) {
             break;
         }
     }
 
-    if (frameno == vm->stack_len) {
-        log_error("failed to free, frame not found in stack\n");
+    if (frame_index == vm->stack_len) {
+        log_error("VM: free failed, frame not found in stack\n");
         return;
     }
 
     // Shift the stack down
-    for (int j = frameno; j < vm->stack_len - 1; j++) {
+    for (int j = frame_index; j < vm->stack_len - 1; j++) {
         vm->stack[j] = vm->stack[j + 1];
     }
 
@@ -168,15 +189,15 @@ Value *vm_heap_alloc(VM *vm, size_t size)
     // Allocate a new entry, if no free block is found
     entry = (HeapObject *)malloc(sizeof(HeapObject) + size);
     if (entry == NULL) {
-        log_error("failed to allocate memory for block\n");
+        log_error("VM: failed to allocate memory for block\n");
         return NULL;
     }
 
     // Add the entry to the list of allocated blocks
-    entry->next = vm->heap;
-    vm->heap = entry;
+    entry->next  = vm->heap;
+    vm->heap     = entry;
     entry->value = value_create(TY_UNKNOWN);
-    entry->free = false;
+    entry->free  = false;
 
     vm->gc_counter++;
     return entry->value;
@@ -185,12 +206,12 @@ Value *vm_heap_alloc(VM *vm, size_t size)
 void vm_heap_free(VM *vm, void *pblock)
 {
     if (pblock == NULL) {
-        log_error("cannot free a NULL block\n");
+        log_error("VM: failed to free, cannot free NULL block\n");
         return;
     }
 
 #ifdef GC_DEBUG
-    log_info("freeing entry at %p\n", pblock);
+    log_info("VM: freeing entry at %p\n", pblock);
 #endif
 
     HeapObject *entry = (HeapObject *)pblock;
@@ -211,108 +232,72 @@ void vm_heap_free(VM *vm, void *pblock)
 
 /* Opcode handling */
 
-void _op_add(VM *vm, VMInstruction *ins)
+void _nop(VM *vm, VMInstruction *ins)
 {
+    log_info("NOP\n");
 }
 
-void _op_sub(VM *vm, VMInstruction *ins)
+void _load_int(VM *vm, VMInstruction *ins)
 {
+    // log_info("LOAD_INT %d\n", ins->operands[0].int_value);
 }
 
-void _op_mul(VM *vm, VMInstruction *ins)
+void _load_float(VM *vm, VMInstruction *ins)
 {
+    // log_info("LOAD_FLOAT %f\n", ins->operands[0].float_value);
 }
 
-void _op_div(VM *vm, VMInstruction *ins)
+void _load_string(VM *vm, VMInstruction *ins)
 {
+    // log_info("LOAD_STRING %s\n", ins->operands[0].string_value);
 }
 
-void _op_cmp(VM *vm, VMInstruction *ins)
+void _store_local(VM *vm, VMInstruction *ins)
 {
-    // Compare two values and set flag
-    Value *a = &ins->operands[0];
-    Value *b = &ins->operands[1];
-
-    if (a->type != b->type) {
-        log_error("cannot compare values of different types\n");
-        return;
-    }
-
-    if (a->type == TY_INT) {
-        vm->flag = a->data.int_value == b->data.int_value;
-    } else if (a->type == TY_FLOAT) {
-        vm->flag = a->data.float_value == b->data.float_value;
-    } else {
-        log_error("unsupported type for comparison\n");
-    }
+    // log_info("STORE_LOCAL %d\n", ins->operands[0].int_value);
 }
 
-void _op_jump(VM *vm, VMInstruction *ins)
+void _load_local(VM *vm, VMInstruction *ins)
 {
-    // Jump to the specified instruction
-    vm->ip = ins->operands[0].data.int_value;
+    // log_info("LOAD_LOCAL %d\n", ins->operands[0].int_value);
 }
 
-void _op_jump_if(VM *vm, VMInstruction *ins)
+void _addi(VM *vm, VMInstruction *ins)
 {
-    // Jump if the condition is true
-    if (vm->flag == 1) {
-        vm->ip = ins->operands[1].data.int_value;
-    }
+    log_info("ADDI\n");
 }
 
-void _op_alloc(VM *vm, VMInstruction *ins)
+void _subi(VM *vm, VMInstruction *ins)
 {
-    // Allocate a new object on the heap
-    int size = ins->operands[0].data.int_value;
-
-    Value *value = vm_heap_alloc(vm, size);
-    Frame *cur_frame = vm->stack[vm->stack_len - 1];
-
-    if (cur_frame->locals_count >= VM_STACK_MAX_SIZE) {
-        log_error("frame locals overflow\n");
-        return;
-    }
-
-    cur_frame->locals[cur_frame->locals_count++] = value;
+    log_info("SUBI\n");
 }
 
-void _op_push_frame(VM *vm, VMInstruction *ins)
+void _mul(VM *vm, VMInstruction *ins)
 {
-    // Push a new frame onto the stack
-    Frame *frame = (Frame *)malloc(sizeof(Frame));
-
-    vm_stack_push(vm, frame);
+    log_info("MUL\n");
 }
 
-void _op_local_set(VM *vm, VMInstruction *ins)
+void _div(VM *vm, VMInstruction *ins)
 {
-    // Set a local variable in the current frame
-    Frame *cur_frame = vm->stack[vm->stack_len - 1];
-    Value *value = &ins->operands[0];
-
-    if (cur_frame->locals_count >= VM_STACK_MAX_SIZE) {
-        log_error("frame locals overflow\n");
-        return;
-    }
-
-    cur_frame->locals[cur_frame->locals_count++] = value;
+    log_info("DIV\n");
 }
 
-void _op_local_get(VM *vm, VMInstruction *ins)
+void _call(VM *vm, VMInstruction *ins)
 {
-    // Get a local variable from the current frame
-    Frame *cur_frame = vm->stack[vm->stack_len - 1];
-
-    if (cur_frame->locals_count == 0) {
-        log_error("frame locals underflow\n");
-        return;
-    }
-
-    // Value *value = cur_frame->locals[--cur_frame->locals_count];
+    log_info("CALL\n");
 }
 
-void _op_call(VM *vm, VMInstruction *ins)
+void _return(VM *vm, VMInstruction *ins)
 {
-    // Call a function
+    log_info("RETURN\n");
+}
+
+void _jump(VM *vm, VMInstruction *ins)
+{
+    log_info("JUMP\n");
+}
+
+void _jump_z(VM *vm, VMInstruction *ins)
+{
+    log_info("JUMP_Z\n");
 }

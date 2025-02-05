@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "error.h"
+#include "logger.h"
 
 typedef struct
 {
@@ -14,8 +14,8 @@ typedef struct
 
 TrFile *taro_read_file(const char *path)
 {
-    FILE *f = fopen(path, "r");
-    char *buf = NULL;
+    FILE *f     = fopen(path, "r");
+    char *buf   = NULL;
     size_t size = 0;
 
     if (!f) {
@@ -27,7 +27,7 @@ TrFile *taro_read_file(const char *path)
     size = ftell(f);
     rewind(f);
 
-    buf = (char *)malloc(size + 1);
+    buf       = (char *)malloc(size + 1);
     buf[size] = '\0';
 
     if (!buf) {
@@ -45,8 +45,8 @@ TrFile *taro_read_file(const char *path)
     }
 
     TrFile *file = (TrFile *)malloc(sizeof(TrFile));
-    file->data = buf;
-    file->size = size;
+    file->data   = buf;
+    file->size   = size;
 
     fclose(f);
     return file;

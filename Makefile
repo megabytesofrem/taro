@@ -1,6 +1,6 @@
 # Compiler
 CC = gcc
-CFLAGS = -save-temps -Wall -Werror -I./src
+CFLAGS = -save-temps -Wall -Werror -Wno-unused-variable -I./src
 
 # Directories
 SRC_DIR = src

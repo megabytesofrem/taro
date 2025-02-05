@@ -8,14 +8,9 @@
  */
 typedef struct Frame
 {
-    int addr; // Instruction pointer
-    Value **locals;
+    int pc;
+    Value locals[16];
     int locals_count;
-    int return_addr;
-    int *saved_regs;
-    int saved_regs_count;
-    Value **params;
-    int params_count;
 
     // Parent frame
     struct Frame *parent;

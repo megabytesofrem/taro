@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../util/error.h"
-
 /* Macros to define values */
 
 #define FIXED_ARRAY false   /* The array is a fixed size */
@@ -17,9 +15,9 @@
 #define STRING(_val) ((Value){.type = TY_STRING, .data.string_value = _val})
 
 #define ARRAY(_val, _count, _capacity, _growable)                                        \
-    ((Value){.type = _growable ? TY_GROWARRAY : TY_FIXEDARRAY,                           \
-             .s_children = _val,                                                         \
-             .s_children_count = _count,                                                 \
+    ((Value){.type                = _growable ? TY_GROWARRAY : TY_FIXEDARRAY,            \
+             .s_children          = _val,                                                \
+             .s_children_count    = _count,                                              \
              .s_children_capacity = _capacity})
 
 /**

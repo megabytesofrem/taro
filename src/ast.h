@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "util/error.h"
+#include "util/logger.h"
 
 enum TrNodeKind
 {
@@ -62,9 +62,9 @@ typedef struct
 ASTNode *ast_node_create(enum TrNodeKind kind, ASTNode *left, ASTNode *right)
 {
     ASTNode *node = (ASTNode *)malloc(sizeof(ASTNode));
-    node->kind = kind;
-    node->left = left;
-    node->right = right;
+    node->kind    = kind;
+    node->left    = left;
+    node->right   = right;
 
     return node;
 }
@@ -84,7 +84,7 @@ void ast_node_create_child(ASTNode *parent, ASTNode *child)
 
 ASTNode *ast_node_create_int(int value)
 {
-    ASTNode *node = ast_node_create(NK_INT, NULL, NULL);
+    ASTNode *node        = ast_node_create(NK_INT, NULL, NULL);
     node->data.int_value = value;
 
     return node;
@@ -92,7 +92,7 @@ ASTNode *ast_node_create_int(int value)
 
 ASTNode *ast_node_create_float(float value)
 {
-    ASTNode *node = ast_node_create(NK_FLOAT, NULL, NULL);
+    ASTNode *node          = ast_node_create(NK_FLOAT, NULL, NULL);
     node->data.float_value = value;
 
     return node;
@@ -100,7 +100,7 @@ ASTNode *ast_node_create_float(float value)
 
 ASTNode *ast_node_create_string(char *value)
 {
-    ASTNode *node = ast_node_create(NK_STRING, NULL, NULL);
+    ASTNode *node           = ast_node_create(NK_STRING, NULL, NULL);
     node->data.string_value = strdup(value);
 
     return node;
@@ -108,7 +108,7 @@ ASTNode *ast_node_create_string(char *value)
 
 ASTNode *ast_node_create_ident(char *value)
 {
-    ASTNode *node = ast_node_create(NK_IDENTIFIER, NULL, NULL);
+    ASTNode *node           = ast_node_create(NK_IDENTIFIER, NULL, NULL);
     node->data.string_value = strdup(value);
 
     return node;
@@ -126,9 +126,9 @@ ASTNode *ast_node_create_operator(enum TrNodeKind kind, ASTNode *left, ASTNode *
 
 ASTNode *ast_node_create_array(ASTNode **nodes, int node_count, int capacity)
 {
-    ASTNode *node = ast_node_create(NK_ARRAY, NULL, NULL);
-    node->s_children = nodes;
-    node->s_children_count = node_count;
+    ASTNode *node             = ast_node_create(NK_ARRAY, NULL, NULL);
+    node->s_children          = nodes;
+    node->s_children_count    = node_count;
     node->s_children_capacity = capacity;
 
     return node;
