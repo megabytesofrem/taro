@@ -1,5 +1,5 @@
-#ifndef TARO_VM_GC
-#define TARO_VM_GC
+#ifndef TARO_RUNTIME_GC_H
+#define TARO_RUNTIME_GC_H
 
 /* If defined, the GC will log debug messages for allocations */
 #define GC_DEBUG 1

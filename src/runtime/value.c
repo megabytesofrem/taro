@@ -16,7 +16,7 @@ Value *value_create(enum TrValueType type)
     return val;
 }
 
-bool value_has_gc_roots(Value *val)
+bool value_has_child_nodes(Value *val)
 {
     return val->type == TY_GROWARRAY || val->type == TY_STRUCTURE || val->s_children > 0;
 }

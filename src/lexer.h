@@ -1,5 +1,5 @@
-#ifndef TARO_LEXER
-#define TARO_LEXER
+#ifndef TARO_LEXER_H
+#define TARO_LEXER_H
 
 #include <ctype.h>
 #include <stdbool.h>

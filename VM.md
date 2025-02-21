@@ -1,33 +1,68 @@
 VM Architecture
 ---------------
+```c
+typedef struct VM
+{
+    size_t ip;          // instruction pointer
+    int flag;           // set after comparison
 
-Stack Frame
------------
-`ip`: pointer to next instruction to execute when returning
-`base`: pointer to base of the current stack frame
-`locals`, `locals_count`: local variables
-`return_addr`: return address to jump to after function call
-`params`, `params_count`: function parameters
-`saved_regs`, `saved_regs_count`: saved registers
+    VMInstruction *code;
+    int code_size;
 
+    // Memory
+    // Stack and a heap
+    VMMem mem;
 
-VM
----
-Stack: holds stack frames and is a fixed size (`VM_STACK_MAX_SIZE`)
-Heap: resizable, non-contiguous 
+    Hashtable *string_tbl;
 
-Opcodes
--------
-`OP_PUSH`: push to stack
-`OP_POP`: pop from stack
-`OP_ADD`: add
-`OP_SUB`: sub
-`OP_MUL`: mul
-`OP_DIV`: div
-`OP_JUMP`: jump unconditional
-`OP_JUMP_IF`: jump if conditional
-`OP_ALLOC`: allocate on the heap
-`OP_PUSH_FRAME`: push a stack frame
-`OP_LOCAL_SET`: set a local value
-`OP_LOCAL_GET`: retrieve a local value
-`OP_CALL`: call function
+    // GC implementation omitted
+} VM;
+```
+
+Instructions
+------------
+```
+Stack Manipulation:
+
+pushi 123:                  Push an int to the stack
+pushf 3.14:                 Push a float to the stack
+popi:                       Pop an int value from the stack
+popf:                       Pop a float value from the stack
+pops:                       Pop a string value from the stack
+stores msg, "hello":        Store a string to the string table
+loads msg:                  Load a string from the string table onto the stack
+
+Comparison:
+cmp:                        Pop two items off the stack, compare them, set flag
+j @label/j +<0x01>:         Jump to a label/jump to a absolute/relative address
+jeq  ..           :         Jump if equal (flag=1)
+jne  ..           :         Jump if not equal (flag=0)
+
+Math:
+addi/subi/mul/div:          Integer addition/subtraction/multiplication/division
+addf/subf:                  Floating point addition/subtraction
+
+Functions:
+call $foo:                  Call a function defined, pushes stack frame - function must end with `ret`
+ret:                        Return from a function
+
+```
+
+Example IL (subject to change)
+----------
+```x86asm
+func add:
+    pushi $0
+    pushi $1
+    addi
+    ret
+end
+
+# Main entrypoint
+.main entrypoint:
+    # call a function 'add'
+    call $add(1, 2)
+    popi
+    ret
+end
+```

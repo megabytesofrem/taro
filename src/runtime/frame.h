@@ -1,5 +1,5 @@
-#ifndef TARO_VM_STACK_FRAME
-#define TARO_VM_STACK_FRAME
+#ifndef TARO_RUNTIME_FRAME_H
+#define TARO_RUNTIME_FRAME_H
 
 #include "value.h"
 

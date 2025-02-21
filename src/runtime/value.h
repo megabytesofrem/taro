@@ -1,5 +1,5 @@
-#ifndef TARO_VALUE
-#define TARO_VALUE
+#ifndef TARO_RUNTIME_VALUE_H
+#define TARO_RUNTIME_VALUE_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -10,15 +10,19 @@
 #define FIXED_ARRAY false   /* The array is a fixed size */
 #define GROWABLE_ARRAY true /* The array is growable */
 
-#define INT(_val) ((Value){.type = TY_INT, .data.int_value = _val})
-#define FLOAT(_val) ((Value){.type = TY_FLOAT, .data.float_value = _val})
-#define STRING(_val) ((Value){.type = TY_STRING, .data.string_value = _val})
+#define new_int(_val) ((Value){.type = TY_INT, .data.int_value = _val})
+#define new_float(_val) ((Value){.type = TY_FLOAT, .data.float_value = _val})
+#define new_string(_val) ((Value){.type = TY_STRING, .data.string_value = _val})
 
-#define ARRAY(_val, _count, _capacity, _growable)                                        \
+#define new_array(_val, _count, _capacity, _growable)                                    \
     ((Value){.type                = _growable ? TY_GROWARRAY : TY_FIXEDARRAY,            \
              .s_children          = _val,                                                \
              .s_children_count    = _count,                                              \
              .s_children_capacity = _capacity})
+
+#define as_int(_val) _val.int_value
+#define as_float(_val) _val.float_value
+#define as_string(_val) _val.string_value
 
 /**
  * Value type enumeration
@@ -54,11 +58,9 @@ typedef struct Value
 Value *value_create(enum TrValueType type);
 
 /**
- * Return whether the value has children that are GC roots and should be managed
- * themselves.
- *
- * TODO: Rename this to be clearer
+ * Return whether the value has child nodes. This is used to determine if we
+ * need to traverse the children of a value during garbage collection.
  */
-bool value_has_gc_roots(Value *val);
+bool value_has_child_nodes(Value *val);
 
 #endif

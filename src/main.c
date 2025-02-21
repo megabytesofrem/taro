@@ -1,20 +1,21 @@
 #include "lexer.h"
-#include "vm/gc.h"
-#include "vm/vm.h"
+#include "runtime/gc.h"
+#include "runtime/value.h"
+#include "runtime/vm.h"
 
 #include <stdio.h>
 #include <strings.h> // For bzero
 #include <unistd.h>
 
-HeapObject *create_object(VM *vm)
+HeapObj *create_object(VM *vm)
 {
-    HeapObject *obj = (HeapObject *)vm_heap_alloc(vm, 0);
-    Value **val     = (Value **)malloc(3 * sizeof(Value *));
-    val[0]          = &INT(1);
-    val[1]          = &INT(2);
-    val[2]          = &INT(3);
+    HeapObj *obj = (HeapObj *)heap_alloc(&vm->mem, 0);
+    Value **val  = (Value **)malloc(3 * sizeof(Value *));
+    val[0]       = &new_int(1);
+    val[1]       = &new_int(2);
+    val[2]       = &new_int(3);
 
-    obj->value = &ARRAY(val, 3, 3, FIXED_ARRAY);
+    obj->value = &new_array(val, 3, 3, FIXED_ARRAY);
     return obj;
 }
 
@@ -26,15 +27,27 @@ int main()
     VM vm;
     vm_init(&vm, VM_DEFAULT_GC_THRESHOLD);
 
-    VMInstruction instructions[1] = {
-        {.opcode = LOAD_INT, .operands_count = 1},
+    // VMInstruction instructions[1] = {
+    //     {.opcode = LOAD_INT, .operands_count = 1},
+    // };
+
+    VMInstruction instructions[6] = {
+        {.opcode = PUSHI, .operands_count = 1, .operands = {{.int_value = 1}}},
+        {.opcode = PUSHI, .operands_count = 1, .operands = {{.int_value = 2}}},
+        {.opcode = ADDI, .operands_count = 0},
+
+        {.opcode         = STORES,
+         .operands_count = 2,
+         .operands       = {{.string_value = "x"}, {.string_value = "test"}}},
+
+        {.opcode = LOADS, .operands_count = 1, .operands = {{.string_value = "x"}}},
     };
 
-    vm_load(&vm, instructions, 1);
+    vm_load(&vm, instructions, 6);
 
-    // for (int i = 0; i < 10; i++) {
-    //     HeapObject *obj = create_object(&vm);
-    //     printf("created object at %p\n", (void *)obj);
+    // for (int i = 0; i < 1000; i++) {
+    //     HeapObj *obj = create_object(&vm);
+    //     // printf("created object at %p\n", (void *)obj);
     // }
 
     while (true) {

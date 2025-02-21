@@ -1,5 +1,5 @@
-#ifndef TARO_FILE_IO
-#define TARO_FILE_IO
+#ifndef TARO_UTIL_FILE_H
+#define TARO_UTIL_FILE_H
 
 #include <stdio.h>
 #include <stdlib.h>

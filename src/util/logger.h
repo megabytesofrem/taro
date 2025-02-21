@@ -1,5 +1,5 @@
-#ifndef TARO_LOGGER
-#define TARO_LOGGER
+#ifndef TARO_UTIL_LOGGER_H
+#define TARO_UTIL_LOGGER_H
 
 #include <stdarg.h>
 #include <stdio.h>

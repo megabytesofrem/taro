@@ -9,7 +9,7 @@
  * Mark and sweep garbage collector written overnight.
  */
 
-void vm_heap_free(VM *vm, void *pentry);
+void heap_free(VMMem *mem, void *pentry);
 
 void gc_mark(Value *val)
 {
@@ -24,7 +24,7 @@ void gc_mark(Value *val)
 #endif
 
     // Managed objects hold references to other objects
-    if (value_has_gc_roots(val)) {
+    if (value_has_child_nodes(val)) {
         if (val->s_children != NULL) {
             for (int i = 0; i < val->s_children_count; i++) {
                 if (val->s_children[i] != NULL) {
@@ -44,7 +44,7 @@ void gc_mark_all(VM *vm)
     // Iterate through the heap allocation list and mark all objects
     log_info("GC: marking all objects in the heap\n");
 
-    HeapObject *entry = vm->heap;
+    HeapObj *entry = vm->mem.heap;
     while (entry != NULL) {
         if (entry->value != NULL) {
 #ifdef GC_DEBUG
@@ -61,7 +61,7 @@ void gc_sweep(VM *vm)
     log_info("GC: performing a sweep\n");
 
     // HeapObject *prev = NULL;
-    HeapObject *entry = vm->heap;
+    HeapObj *entry = vm->mem.heap;
 
     while (entry != NULL) {
         if (entry->value != NULL) {
@@ -73,11 +73,11 @@ void gc_sweep(VM *vm)
 
         if (entry->value == NULL || !entry->value->marked) {
             // Unreached entry so let's free it
-            HeapObject *unreached = entry;
-            entry                 = entry->next;
+            HeapObj *unreached = entry;
+            entry              = entry->next;
 
             if (unreached != NULL) {
-                vm_heap_free(vm, unreached);
+                heap_free(&vm->mem, unreached);
             }
         } else {
 #ifdef GC_DEBUG
@@ -97,5 +97,5 @@ void gc_collect(VM *vm)
     // Sweep once and then once more to ensure all unreachable objects are freed
     gc_sweep(vm);
     gc_sweep(vm);
-    vm->gc_counter = 0;
+    vm->mem.gc_counter = 0;
 }

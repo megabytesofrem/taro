@@ -1,5 +1,5 @@
-#ifndef TARO_PARSER
-#define TARO_PARSER
+#ifndef TARO_PARSER_H
+#define TARO_PARSER_H
 
 #include "ast.h"
 #include "lexer.h"

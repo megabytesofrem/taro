@@ -1,5 +1,5 @@
-#ifndef TARO_NODE
-#define TARO_NODE
+#ifndef TARO_AST_H
+#define TARO_AST_H
 
 #include <stdbool.h>
 #include <stdlib.h>

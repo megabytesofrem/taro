@@ -19,6 +19,20 @@
         "stdbool.h": "c",
         "opcode.h": "c",
         "gc.h": "c",
-        "frame.h": "c"
+        "frame.h": "c",
+        "vm_mem.h": "c",
+        "logger.h": "c",
+        "evp.h": "c",
+        "charconv": "c",
+        "optional": "c",
+        "system_error": "c",
+        "functional": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "hashtable.h": "c",
+        "cstdint": "cpp",
+        "stdarg.h": "c",
+        "string.h": "c"
     }
 }
