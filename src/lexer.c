@@ -1,7 +1,27 @@
+/**
+ * lexer.c -- Frontend lexer for Taro
+ *
+ * Authors:
+ * - Charlotte (megabytesofrem)
+ */
+
 #include "lexer.h"
 #include "util/logger.h"
 
+#include <ctype.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+static Keyword g_reserved_keywords[] = {
+    {"if",       TOK_KWIF      },
+    {"then",     TOK_KWTHEN    },
+    {"else",     TOK_KWELSE    },
+    {"end",      TOK_KWEND     },
+    {"while",    TOK_KWWHILE   },
+    {"for",      TOK_KWFOR     },
+    {"function", TOK_KWFUNCTION},
+};
 
 Lexer lexer_init(char *src)
 {
@@ -12,18 +32,8 @@ Lexer lexer_init(char *src)
     l.current = 0;
 
     // Reserved keywords
-    static Keyword reserved_kw[] = {
-        {"if",       TOK_KWIF      },
-        {"then",     TOK_KWTHEN    },
-        {"else",     TOK_KWELSE    },
-        {"end",      TOK_KWEND     },
-        {"while",    TOK_KWWHILE   },
-        {"for",      TOK_KWFOR     },
-        {"function", TOK_KWFUNCTION},
-    };
-
-    l.reserved_kw       = reserved_kw;
-    l.reserved_kw_count = (sizeof(reserved_kw) / sizeof(Keyword));
+    l.reserved_kw       = g_reserved_keywords;
+    l.reserved_kw_count = (sizeof(g_reserved_keywords) / sizeof(Keyword));
 
     return l;
 }
@@ -237,8 +247,12 @@ Token lexer_poll(Lexer *l)
     case '/':
         return make_token(l, TOK_SLASH, "/", 1);
     case '=':
-        return make_token(l, lexer_peek(l, 1) == '=' ? TOK_EQEQ : TOK_EQ, "=",
-                          lexer_peek(l, 1) == '=' ? 2 : 1);
+        if (lexer_peek(l, 0) == '=') {
+            lexer_advance(l);
+            return make_token(l, TOK_EQEQ, "==", 2);
+        } else {
+            return make_token(l, TOK_EQ, "=", 1);
+        }
     case '!':
         return make_token(l, lexer_peek(l, 1) == '=' ? TOK_BANGEQ : TOK_BANG, "!",
                           lexer_peek(l, 1) == '=' ? 2 : 1);
@@ -313,8 +327,8 @@ Token lexer_scan_number(Lexer *l)
     }
 
     // Calculate the length of the number
-    int length = l->current - l->start;
-    char *text = strndup(l->src + l->start, length);
+    int length = l->current - l->start + 1;
+    char *text = strndup(l->src + (l->start - 1), length);
 
     Token token = make_token(l, TOK_INT, text, length);
 
