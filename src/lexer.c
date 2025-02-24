@@ -254,14 +254,26 @@ Token lexer_poll(Lexer *l)
             return make_token(l, TOK_EQ, "=", 1);
         }
     case '!':
-        return make_token(l, lexer_peek(l, 1) == '=' ? TOK_BANGEQ : TOK_BANG, "!",
-                          lexer_peek(l, 1) == '=' ? 2 : 1);
+        if (lexer_peek(l, 0) == '=') {
+            lexer_advance(l);
+            return make_token(l, TOK_BANGEQ, "!=", 2);
+        } else {
+            return make_token(l, TOK_BANG, "!", 1);
+        }
     case '<':
-        return make_token(l, lexer_peek(l, 1) == '=' ? TOK_LTEQ : TOK_LT, "<",
-                          lexer_peek(l, 1) == '=' ? 2 : 1);
+        if (lexer_peek(l, 0) == '=') {
+            lexer_advance(l);
+            return make_token(l, TOK_LTEQ, "<=", 2);
+        } else {
+            return make_token(l, TOK_LT, "<", 1);
+        }
     case '>':
-        return make_token(l, lexer_peek(l, 1) == '=' ? TOK_GTEQ : TOK_GT, ">",
-                          lexer_peek(l, 1) == '=' ? 2 : 1);
+        if (lexer_peek(l, 0) == '=') {
+            lexer_advance(l);
+            return make_token(l, TOK_GTEQ, ">=", 2);
+        } else {
+            return make_token(l, TOK_GT, ">", 1);
+        }
     case '#':
         while (!lexer_eof(l) && lexer_peek(l, 0) != '\n')
             lexer_advance(l);
