@@ -1,5 +1,5 @@
 /**
- * lexer.c -- Frontend lexer for Taro
+ * Frontend lexer interface for Taro.
  *
  * Authors:
  * - Charlotte (megabytesofrem)
@@ -13,7 +13,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Keyword g_reserved_keywords[] = {
+static bool at_eof(Lexer *l);
+static char advance(Lexer *l);
+static char peek(Lexer *l, int offset);
+
+static struct Token make_token(Lexer *l, enum TokenType type, char *value, int length);
+static struct Token make_error(Lexer *l, const char *message);
+static struct Token lexer_scan_kw(Lexer *l);
+static struct Token lexer_scan_number(Lexer *l);
+
+/* Reserved keywords */
+static struct Keyword g_reserved_keywords[] = {
     {"if",       TOK_KWIF      },
     {"then",     TOK_KWTHEN    },
     {"else",     TOK_KWELSE    },
@@ -33,7 +43,7 @@ Lexer lexer_init(char *src)
 
     // Reserved keywords
     l.reserved_kw       = g_reserved_keywords;
-    l.reserved_kw_count = (sizeof(g_reserved_keywords) / sizeof(Keyword));
+    l.reserved_kw_count = (sizeof(g_reserved_keywords) / sizeof(struct Keyword));
 
     return l;
 }
@@ -46,9 +56,9 @@ void lexer_cleanup(Lexer *l)
     l->current = 0;
 }
 
-static Token make_token(Lexer *l, enum TokenType type, char *value, int length)
+static struct Token make_token(Lexer *l, enum TokenType type, char *value, int length)
 {
-    Token t;
+    struct Token t;
     t.type  = type;
     t.value = strdup(value);
     t.line  = l->line;
@@ -58,9 +68,9 @@ static Token make_token(Lexer *l, enum TokenType type, char *value, int length)
     return t;
 }
 
-static Token make_error(Lexer *l, const char *message)
+static struct Token make_error(Lexer *l, const char *message)
 {
-    Token t;
+    struct Token t;
     t.type  = TOK_ERR;
     t.value = strdup(message);
     t.line  = l->line;
@@ -72,17 +82,17 @@ static Token make_error(Lexer *l, const char *message)
 
 static void skip_whitespace(Lexer *l)
 {
-    while (!lexer_eof(l)) {
-        char c = lexer_peek(l, 0);
+    while (!at_eof(l)) {
+        char c = peek(l, 0);
         switch (c) {
         case ' ':
         case '\r':
         case '\t':
-            lexer_advance(l);
+            advance(l);
             break;
         case '\n':
             l->line++;
-            lexer_advance(l);
+            advance(l);
             break;
         default:
             return;
@@ -90,7 +100,7 @@ static void skip_whitespace(Lexer *l)
     }
 }
 
-void format_token(Token t, char *buf)
+void format_token(struct Token t, char *buf)
 {
     if (buf == NULL) {
         log_error("buffer provided to format_token was NULL\n");
@@ -185,51 +195,39 @@ void format_token(Token t, char *buf)
     }
 }
 
-bool lexer_eof(Lexer *l)
+bool at_eof(Lexer *l)
 {
     return l->current >= strlen(l->src);
 }
 
-char lexer_advance(Lexer *l)
+char advance(Lexer *l)
 {
-    if (lexer_eof(l)) {
+    if (at_eof(l)) {
         log_error("cannot advance lexer past EOF\n");
         return '\0';
     }
 
-    if (lexer_peek(l, 0) == '\n')
+    if (peek(l, 0) == '\n')
         l->line++;
 
     l->current++;
     return l->src[l->current - 1];
 }
 
-char lexer_peek(Lexer *l, int offset)
+char peek(Lexer *l, int offset)
 {
     return l->src[l->current + offset] != '\0' ? l->src[l->current + offset] : '\0';
 }
 
-bool lexer_match(Lexer *l, char expect)
-{
-    if (lexer_eof(l))
-        return false;
-
-    if (lexer_peek(l, 0) != expect)
-        return false;
-
-    lexer_advance(l);
-    return true;
-}
-
-Token lexer_poll(Lexer *l)
+struct Token lexer_poll(Lexer *l)
 {
     skip_whitespace(l);
     l->start = l->current;
 
-    if (lexer_eof(l))
+    if (at_eof(l))
         return make_token(l, TOK_EOF, "", 0);
 
-    char c = lexer_advance(l);
+    char c = advance(l);
 
     if (isdigit(c))
         return lexer_scan_number(l);
@@ -247,36 +245,36 @@ Token lexer_poll(Lexer *l)
     case '/':
         return make_token(l, TOK_SLASH, "/", 1);
     case '=':
-        if (lexer_peek(l, 0) == '=') {
-            lexer_advance(l);
+        if (peek(l, 0) == '=') {
+            advance(l);
             return make_token(l, TOK_EQEQ, "==", 2);
         } else {
             return make_token(l, TOK_EQ, "=", 1);
         }
     case '!':
-        if (lexer_peek(l, 0) == '=') {
-            lexer_advance(l);
+        if (peek(l, 0) == '=') {
+            advance(l);
             return make_token(l, TOK_BANGEQ, "!=", 2);
         } else {
             return make_token(l, TOK_BANG, "!", 1);
         }
     case '<':
-        if (lexer_peek(l, 0) == '=') {
-            lexer_advance(l);
+        if (peek(l, 0) == '=') {
+            advance(l);
             return make_token(l, TOK_LTEQ, "<=", 2);
         } else {
             return make_token(l, TOK_LT, "<", 1);
         }
     case '>':
-        if (lexer_peek(l, 0) == '=') {
-            lexer_advance(l);
+        if (peek(l, 0) == '=') {
+            advance(l);
             return make_token(l, TOK_GTEQ, ">=", 2);
         } else {
             return make_token(l, TOK_GT, ">", 1);
         }
     case '#':
-        while (!lexer_eof(l) && lexer_peek(l, 0) != '\n')
-            lexer_advance(l);
+        while (!at_eof(l) && peek(l, 0) != '\n')
+            advance(l);
 
         return make_token(l, TOK_COMMENT, l->src + l->start + 1,
                           l->current - l->start - 1);
@@ -285,18 +283,18 @@ Token lexer_poll(Lexer *l)
     return make_error(l, "unexpected character");
 }
 
-Token lexer_scan_kw(Lexer *l)
+struct Token lexer_scan_kw(Lexer *l)
 {
     // Find the start of the keyword or identifier
     l->start = l->current - 1;
 
     char c;
-    while ((c = lexer_peek(l, 0))) {
+    while ((c = peek(l, 0))) {
         if (!isalpha(c) && !isdigit(c) && c != '_') {
             break;
         }
 
-        lexer_advance(l);
+        advance(l);
     }
 
     // Calculate the length of the keyword or identifier
@@ -312,13 +310,13 @@ Token lexer_scan_kw(Lexer *l)
         }
     }
 
-    Token token = make_token(l, type, text, length);
+    struct Token token = make_token(l, type, text, length);
     free(text);
 
     return token;
 }
 
-Token lexer_scan_number(Lexer *l)
+struct Token lexer_scan_number(Lexer *l)
 {
     // Find the start of the number
     l->start = l->current;
@@ -326,7 +324,7 @@ Token lexer_scan_number(Lexer *l)
     char c;
     bool floating = false;
 
-    while ((c = lexer_peek(l, 0))) {
+    while ((c = peek(l, 0))) {
         if (!isdigit(c)) {
             if (c == '.' && !floating) {
                 floating = true;
@@ -335,14 +333,14 @@ Token lexer_scan_number(Lexer *l)
             }
         }
 
-        lexer_advance(l);
+        advance(l);
     }
 
     // Calculate the length of the number
     int length = l->current - l->start + 1;
     char *text = strndup(l->src + (l->start - 1), length);
 
-    Token token = make_token(l, TOK_INT, text, length);
+    struct Token token = make_token(l, TOK_INT, text, length);
 
     if (floating) {
         token.type        = TOK_FLOAT;

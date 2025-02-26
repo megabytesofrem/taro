@@ -1,3 +1,10 @@
+/**
+ * Main virtual machine -- the kernel of Taro.
+ *
+ * Authors:
+ * - Charlotte (megabytesofrem)
+ */
+
 #include "vm.h"
 #include "gc.h"
 

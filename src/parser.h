@@ -1,7 +1,13 @@
+/**
+ * Frontend parser interface for Taro.
+ *
+ * Authors:
+ * - Charlotte (megabytesofrem)
+ */
+
 #ifndef TARO_PARSER_H
 #define TARO_PARSER_H
 
-#include "ast.h"
 #include "lexer.h"
 
 enum AssocDirection
@@ -10,12 +16,12 @@ enum AssocDirection
     ASSOC_RIGHT,
 };
 
-typedef struct
+struct Prec
 {
     enum TokenType tt;
     int precedence;
     enum AssocDirection assoc;
-} Precedence;
+};
 
 typedef struct
 {

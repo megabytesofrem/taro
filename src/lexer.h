@@ -40,7 +40,7 @@ enum TokenType
     TOK_KWFUNCTION,
 };
 
-typedef struct
+struct Token
 {
     enum TokenType type;
     char *value;
@@ -50,35 +50,25 @@ typedef struct
         int int_value;
         float float_value;
     };
+};
 
-} Token;
-
-typedef struct
+struct Keyword
 {
     const char *name;
     enum TokenType type;
-} Keyword;
+};
 
 typedef struct
 {
     char *src;
     int line, start, current;
 
-    Keyword *reserved_kw;
+    struct Keyword *reserved_kw;
     int reserved_kw_count;
 } Lexer;
 
 Lexer lexer_init(char *src);
 void lexer_cleanup(Lexer *l);
 
-void format_token(Token t, char *buf);
-
-bool lexer_eof(Lexer *l);
-char lexer_advance(Lexer *l);
-char lexer_peek(Lexer *l, int offset);
-bool lexer_match(Lexer *l, char expect);
-Token lexer_poll(Lexer *l);
-
-Token lexer_scan_kw(Lexer *l);
-Token lexer_scan_number(Lexer *l);
+struct Token lexer_poll(Lexer *l);
 #endif

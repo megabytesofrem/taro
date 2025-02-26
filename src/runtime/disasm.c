@@ -1,5 +1,5 @@
 /**
- * disasm.c -- Assembly and disassembly of instructions
+ * Assembly and disassembly of instructions. Part of Taro's runtime.
  *
  * Authors:
  * - Charlotte (megabytesofrem)

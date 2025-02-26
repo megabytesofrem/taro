@@ -1,13 +1,16 @@
+/**
+ * Barebones mark and sweep garbage collector.
+ *
+ * Authors:
+ * - Charlotte (megabytesofrem)
+ */
+
 #include "gc.h"
 
 #include <pthread.h>
 #include <unistd.h>
 
 #include "../util/logger.h"
-
-/**
- * Mark and sweep garbage collector written overnight.
- */
 
 void heap_free(VMMem *mem, void *pentry);
 
