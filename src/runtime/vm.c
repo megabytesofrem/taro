@@ -17,8 +17,7 @@
 #include "../util/logger.h"
 
 // Background GC thread function
-static void *gc_thread_func(void *arg)
-{
+static void *gc_thread_func(void *arg) {
     VM *vm = (VM *)arg;
 
     while (!vm->stop_gc) {
@@ -38,8 +37,7 @@ static void *gc_thread_func(void *arg)
     return NULL;
 }
 
-void vm_init(VM *vm, int gc_threshold)
-{
+void vm_init(VM *vm, int gc_threshold) {
     vm->ip = 0;
 
     vm->code      = NULL;
@@ -64,8 +62,7 @@ void vm_init(VM *vm, int gc_threshold)
     pthread_detach(vm->gc_thread);
 }
 
-void vm_cleanup(VM *vm)
-{
+void vm_cleanup(VM *vm) {
     hashtable_free(vm->string_tbl);
 
     pthread_mutex_lock(&vm->gc_mutex);
@@ -83,8 +80,7 @@ void vm_cleanup(VM *vm)
     pthread_mutex_destroy(&vm->gc_mutex);
 }
 
-void vm_load(VM *vm, VMInstruction *code, int len)
-{
+void vm_load(VM *vm, VMInstruction *code, int len) {
     if (vm->code != NULL) {
         free(vm->code);
     }
@@ -108,8 +104,7 @@ void vm_load(VM *vm, VMInstruction *code, int len)
     log_info("VM: loaded %d instructions\n", len);
 }
 
-void vm_cycle(VM *vm)
-{
+void vm_cycle(VM *vm) {
     // Fetch-decode-execute cycle
 
     if (vm->code == NULL) {
@@ -133,8 +128,7 @@ void vm_cycle(VM *vm)
     vm->ip++;
 }
 
-void vm_decode(VM *vm, VMInstruction *ins)
-{
+void vm_decode(VM *vm, VMInstruction *ins) {
     switch (ins->opcode) {
     case NOP:
         log_info("VM: NOP\n");

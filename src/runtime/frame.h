@@ -6,8 +6,7 @@
 /**
  * Stack frame
  */
-typedef struct Frame
-{
+typedef struct Frame {
     int pc;
     Value locals[16];
     int locals_count;

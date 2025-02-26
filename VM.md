@@ -98,3 +98,6 @@ end
 call $do_nothing()
 ```
 
+Bytecode format
+---------------
+The bytecode format is defined in `src/runtime/bytecode.h`

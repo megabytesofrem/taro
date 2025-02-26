@@ -6,14 +6,12 @@
 
 #include "logger.h"
 
-typedef struct
-{
+typedef struct {
     char *data;
     size_t size;
 } TrFile;
 
-TrFile *taro_read_file(const char *path)
-{
+TrFile *taro_read_file(const char *path) {
     FILE *f     = fopen(path, "r");
     char *buf   = NULL;
     size_t size = 0;
@@ -52,8 +50,7 @@ TrFile *taro_read_file(const char *path)
     return file;
 }
 
-void taro_file_free(TrFile *file)
-{
+void taro_file_free(TrFile *file) {
     free(file->data);
     free(file);
 }

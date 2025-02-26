@@ -6,8 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum TokenType
-{
+enum TokenType {
     TOK_IDENTIFIER,
     TOK_INT,
     TOK_FLOAT,
@@ -40,8 +39,7 @@ enum TokenType
     TOK_KWFUNCTION,
 };
 
-struct Token
-{
+struct Token {
     enum TokenType type;
     char *value;
     int line, start, end;
@@ -52,14 +50,12 @@ struct Token
     };
 };
 
-struct Keyword
-{
+struct Keyword {
     const char *name;
     enum TokenType type;
 };
 
-typedef struct
-{
+typedef struct {
     char *src;
     int line, start, current;
 

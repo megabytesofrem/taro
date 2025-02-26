@@ -8,16 +8,14 @@
 /**
  * An object on the heap with a pointer to the next object
  */
-typedef struct HeapObj
-{
+typedef struct HeapObj {
     Value *value;
     struct HeapObj *next;
 
     bool free;
 } HeapObj;
 
-typedef struct VMMem
-{
+typedef struct VMMem {
     size_t sp;
 
     Value stack[VM_STACK_MAX_SIZE];

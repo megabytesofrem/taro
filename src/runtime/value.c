@@ -2,8 +2,7 @@
 
 #include "../util/logger.h"
 
-Value *value_create(enum TrValueType type)
-{
+Value *value_create(enum TrValueType type) {
     Value *val = (Value *)malloc(sizeof(Value));
     if (val == NULL) {
         log_error("failed to allocate memory for object\n");
@@ -16,7 +15,6 @@ Value *value_create(enum TrValueType type)
     return val;
 }
 
-bool value_has_child_nodes(Value *val)
-{
+bool value_has_child_nodes(Value *val) {
     return val->type == TY_GROWARRAY || val->type == TY_STRUCTURE || val->s_children > 0;
 }

@@ -10,21 +10,18 @@
 
 #include "lexer.h"
 
-enum AssocDirection
-{
+enum AssocDirection {
     ASSOC_LEFT,
     ASSOC_RIGHT,
 };
 
-struct Prec
-{
+struct Prec {
     enum TokenType tt;
     int precedence;
     enum AssocDirection assoc;
 };
 
-typedef struct
-{
+typedef struct {
     Lexer *lexer;
     Token curr;
 } Parser;

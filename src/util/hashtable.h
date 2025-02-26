@@ -11,21 +11,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct Ht_Entry
-{
+typedef struct Ht_Entry {
     char *key;
     void *value;
 
     struct Ht_Entry *next;
 } Ht_Entry;
 
-typedef struct Hashtable
-{
+typedef struct Hashtable {
     Ht_Entry **entries;
 } Hashtable;
 
-static inline unsigned long fnv_hash(char *key)
-{
+static inline unsigned long fnv_hash(char *key) {
     // FNV-1a hash function
     unsigned long hash = FNV_OFFSET_BASIS;
     for (int i = 0; i < strlen(key); i++) {

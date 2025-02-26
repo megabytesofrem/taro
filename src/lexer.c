@@ -33,8 +33,7 @@ static struct Keyword g_reserved_keywords[] = {
     {"function", TOK_KWFUNCTION},
 };
 
-Lexer lexer_init(char *src)
-{
+Lexer lexer_init(char *src) {
     Lexer l;
     l.src     = src;
     l.line    = 1;
@@ -48,16 +47,14 @@ Lexer lexer_init(char *src)
     return l;
 }
 
-void lexer_cleanup(Lexer *l)
-{
+void lexer_cleanup(Lexer *l) {
     l->src     = NULL;
     l->line    = 0;
     l->start   = 0;
     l->current = 0;
 }
 
-static struct Token make_token(Lexer *l, enum TokenType type, char *value, int length)
-{
+static struct Token make_token(Lexer *l, enum TokenType type, char *value, int length) {
     struct Token t;
     t.type  = type;
     t.value = strdup(value);
@@ -68,8 +65,7 @@ static struct Token make_token(Lexer *l, enum TokenType type, char *value, int l
     return t;
 }
 
-static struct Token make_error(Lexer *l, const char *message)
-{
+static struct Token make_error(Lexer *l, const char *message) {
     struct Token t;
     t.type  = TOK_ERR;
     t.value = strdup(message);
@@ -80,8 +76,7 @@ static struct Token make_error(Lexer *l, const char *message)
     return t;
 }
 
-static void skip_whitespace(Lexer *l)
-{
+static void skip_whitespace(Lexer *l) {
     while (!at_eof(l)) {
         char c = peek(l, 0);
         switch (c) {
@@ -100,8 +95,7 @@ static void skip_whitespace(Lexer *l)
     }
 }
 
-void format_token(struct Token t, char *buf)
-{
+void format_token(struct Token t, char *buf) {
     if (buf == NULL) {
         log_error("buffer provided to format_token was NULL\n");
         return;
@@ -195,13 +189,9 @@ void format_token(struct Token t, char *buf)
     }
 }
 
-bool at_eof(Lexer *l)
-{
-    return l->current >= strlen(l->src);
-}
+bool at_eof(Lexer *l) { return l->current >= strlen(l->src); }
 
-char advance(Lexer *l)
-{
+char advance(Lexer *l) {
     if (at_eof(l)) {
         log_error("cannot advance lexer past EOF\n");
         return '\0';
@@ -214,13 +204,11 @@ char advance(Lexer *l)
     return l->src[l->current - 1];
 }
 
-char peek(Lexer *l, int offset)
-{
+char peek(Lexer *l, int offset) {
     return l->src[l->current + offset] != '\0' ? l->src[l->current + offset] : '\0';
 }
 
-struct Token lexer_poll(Lexer *l)
-{
+struct Token lexer_poll(Lexer *l) {
     skip_whitespace(l);
     l->start = l->current;
 
@@ -283,8 +271,7 @@ struct Token lexer_poll(Lexer *l)
     return make_error(l, "unexpected character");
 }
 
-struct Token lexer_scan_kw(Lexer *l)
-{
+struct Token lexer_scan_kw(Lexer *l) {
     // Find the start of the keyword or identifier
     l->start = l->current - 1;
 
@@ -316,8 +303,7 @@ struct Token lexer_scan_kw(Lexer *l)
     return token;
 }
 
-struct Token lexer_scan_number(Lexer *l)
-{
+struct Token lexer_scan_number(Lexer *l) {
     // Find the start of the number
     l->start = l->current;
 

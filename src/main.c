@@ -7,8 +7,7 @@
 #include <strings.h> // For bzero
 #include <unistd.h>
 
-HeapObj *create_object(VM *vm)
-{
+HeapObj *create_object(VM *vm) {
     HeapObj *obj = (HeapObj *)heap_alloc(&vm->mem, 0);
     Value **val  = (Value **)malloc(3 * sizeof(Value *));
     val[0]       = &new_int(1);
@@ -19,8 +18,7 @@ HeapObj *create_object(VM *vm)
     return obj;
 }
 
-int main()
-{
+int main() {
     // Lexer l = lexer_init("if x >= 1234 then\n0.1234\n else def end");
 
     // VM testing ground

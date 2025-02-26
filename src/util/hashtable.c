@@ -1,7 +1,6 @@
 #include "hashtable.h"
 
-Ht_Entry *ht_entry(char *key, void *value)
-{
+Ht_Entry *ht_entry(char *key, void *value) {
     Ht_Entry *entry = (Ht_Entry *)malloc(sizeof(Ht_Entry));
     entry->key      = strdup(key);
     entry->value    = strdup(value);
@@ -10,8 +9,7 @@ Ht_Entry *ht_entry(char *key, void *value)
     return entry;
 }
 
-Hashtable *hashtable_create()
-{
+Hashtable *hashtable_create() {
     Hashtable *ht = (Hashtable *)malloc(sizeof(Hashtable));
     ht->entries   = (Ht_Entry **)malloc(sizeof(Ht_Entry) * TABLE_SIZE);
 
@@ -22,8 +20,7 @@ Hashtable *hashtable_create()
     return ht;
 }
 
-void hashtable_free(Hashtable *ht)
-{
+void hashtable_free(Hashtable *ht) {
     for (int i = 0; i < TABLE_SIZE; i++) {
         Ht_Entry *entry = ht->entries[i];
         while (entry != NULL) {
@@ -39,8 +36,7 @@ void hashtable_free(Hashtable *ht)
     free(ht);
 }
 
-void ht_set(Hashtable *ht, char *key, void *value)
-{
+void ht_set(Hashtable *ht, char *key, void *value) {
     unsigned int slot = fnv_hash(key) % TABLE_SIZE;
 
     Ht_Entry *entry = ht->entries[slot];
@@ -69,18 +65,13 @@ void ht_set(Hashtable *ht, char *key, void *value)
     prev->next = ht_entry(key, value);
 }
 
-void ht_set_string(Hashtable *ht, char *key, char *value)
-{
+void ht_set_string(Hashtable *ht, char *key, char *value) {
     ht_set(ht, key, (void *)value);
 }
 
-void ht_set_int(Hashtable *ht, char *key, int value)
-{
-    ht_set(ht, key, (void *)&value);
-}
+void ht_set_int(Hashtable *ht, char *key, int value) { ht_set(ht, key, (void *)&value); }
 
-void *ht_get(Hashtable *ht, char *key)
-{
+void *ht_get(Hashtable *ht, char *key) {
     unsigned int slot = fnv_hash(key) % TABLE_SIZE;
 
     Ht_Entry *entry = ht->entries[slot];
@@ -96,13 +87,9 @@ void *ht_get(Hashtable *ht, char *key)
     return NULL;
 }
 
-char *ht_get_string(Hashtable *ht, char *key)
-{
-    return (char *)ht_get(ht, key);
-}
+char *ht_get_string(Hashtable *ht, char *key) { return (char *)ht_get(ht, key); }
 
-int ht_get_int(Hashtable *ht, char *key)
-{
+int ht_get_int(Hashtable *ht, char *key) {
     // Cast to int* and then dereference
     return *(int *)ht_get(ht, key);
 }

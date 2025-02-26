@@ -2,8 +2,7 @@
 
 #include "../util/logger.h"
 
-void stack_push(VMMem *mem, Value *value)
-{
+void stack_push(VMMem *mem, Value *value) {
     // Check for stack overflow
     if (mem->sp >= VM_STACK_MAX_SIZE) {
         log_error("VM: stack overflow\n");
@@ -14,8 +13,7 @@ void stack_push(VMMem *mem, Value *value)
     mem->stack_top[mem->sp++] = *value;
 }
 
-Value *stack_pop(VMMem *mem)
-{
+Value *stack_pop(VMMem *mem) {
     if (mem->sp == 0) {
         log_error("VM: stack underflow\n");
         return NULL;
@@ -26,8 +24,7 @@ Value *stack_pop(VMMem *mem)
     return mem->stack_top;
 }
 
-void stack_dump(VMMem *mem)
-{
+void stack_dump(VMMem *mem) {
     log_info("VM: stack dump\n");
     for (int i = 0; i < mem->sp; i++) {
         if (mem->stack[i].type == TY_INT) {
@@ -40,8 +37,7 @@ void stack_dump(VMMem *mem)
     }
 }
 
-Value *heap_alloc(VMMem *mem, size_t size)
-{
+Value *heap_alloc(VMMem *mem, size_t size) {
     HeapObj *entry = mem->heap;
 
     // Try to find a free space
@@ -71,8 +67,7 @@ Value *heap_alloc(VMMem *mem, size_t size)
     return entry->value;
 }
 
-void heap_free(VMMem *mem, void *pblock)
-{
+void heap_free(VMMem *mem, void *pblock) {
     if (pblock == NULL) {
         log_error("VM: failed to free, cannot free NULL block\n");
         return;

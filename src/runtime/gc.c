@@ -14,8 +14,7 @@
 
 void heap_free(VMMem *mem, void *pentry);
 
-void gc_mark(Value *val)
-{
+void gc_mark(Value *val) {
     if (val == NULL || val->marked)
         return;
 
@@ -42,8 +41,7 @@ void gc_mark(Value *val)
     }
 }
 
-void gc_mark_all(VM *vm)
-{
+void gc_mark_all(VM *vm) {
     // Iterate through the heap allocation list and mark all objects
     log_info("GC: marking all objects in the heap\n");
 
@@ -59,8 +57,7 @@ void gc_mark_all(VM *vm)
     }
 }
 
-void gc_sweep(VM *vm)
-{
+void gc_sweep(VM *vm) {
     log_info("GC: performing a sweep\n");
 
     // HeapObject *prev = NULL;
@@ -93,8 +90,7 @@ void gc_sweep(VM *vm)
     }
 }
 
-void gc_collect(VM *vm)
-{
+void gc_collect(VM *vm) {
     gc_mark_all(vm);
 
     // Sweep once and then once more to ensure all unreachable objects are freed
