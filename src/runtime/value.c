@@ -2,7 +2,7 @@
 
 #include "../util/logger.h"
 
-Value *value_create(enum TrValueType type) {
+Value *value_create(enum RuntimeValueType type) {
     Value *val = (Value *)malloc(sizeof(Value));
     if (val == NULL) {
         log_error("failed to allocate memory for object\n");

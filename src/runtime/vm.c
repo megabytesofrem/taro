@@ -1,19 +1,20 @@
 /**
- * Main virtual machine -- the kernel of Taro.
+ * Main virtual machine that interprets its own bytecode format
  *
  * Authors:
  * - Charlotte (megabytesofrem)
  */
 
 #include "vm.h"
+#include "bytecode.h"
 #include "gc.h"
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 
-#include <openssl/evp.h>
-
+#include "../util/arena.h"
 #include "../util/logger.h"
 
 // Background GC thread function
@@ -62,7 +63,7 @@ void vm_init(VM *vm, int gc_threshold) {
     pthread_detach(vm->gc_thread);
 }
 
-void vm_cleanup(VM *vm) {
+void vm_cleanup(Arena *arena, VM *vm) {
     hashtable_free(vm->string_tbl);
 
     pthread_mutex_lock(&vm->gc_mutex);
@@ -78,37 +79,25 @@ void vm_cleanup(VM *vm) {
     }
 
     pthread_mutex_destroy(&vm->gc_mutex);
+    arena_destroy(arena);
 }
 
-void vm_load(VM *vm, VMInstruction *code, int len) {
+void vm_load(Arena *arena, VM *vm, uint8_t *code, size_t len) {
     if (vm->code != NULL) {
         free(vm->code);
     }
 
-    // Allocate memory for new instructions
+    // Allocate memory for code
     vm->code = (VMInstruction *)malloc(len * sizeof(VMInstruction));
-    if (!vm->code) {
-        log_error("VM: failed to allocate memory for code\n");
-        exit(EXIT_FAILURE);
-    }
+    read_bytecode_stream(code, len, vm->code, &vm->code_size);
 
-    // Copy the code into the VM
-    memcpy(vm->code, code, len * sizeof(VMInstruction));
-    vm->code_size = len;
-
-    // Debug output
-    for (int i = 0; i < len; i++) {
-        printf("%d: %d\n", i, vm->code[i].opcode);
-    }
-
-    log_info("VM: loaded %d instructions\n", len);
+    log_info("VM: loaded %d instructions\n", vm->code_size);
 }
 
-void vm_cycle(VM *vm) {
+void vm_cycle(Arena *arena, VM *vm) {
     // Fetch-decode-execute cycle
 
     if (vm->code == NULL) {
-        log_error("VM: no code loaded\n");
         return;
     }
 
@@ -124,20 +113,22 @@ void vm_cycle(VM *vm) {
 
     log_info("VM: ip: %d, opcode: %d\n", vm->ip, ins.opcode);
 
-    vm_decode(vm, &ins);
+    vm_decode(arena, vm, &ins);
     vm->ip++;
 }
 
-void vm_decode(VM *vm, VMInstruction *ins) {
+void vm_decode(Arena *arena, VM *vm, VMInstruction *ins) {
+    Value *a, *b;
+
     switch (ins->opcode) {
     case NOP:
         log_info("VM: NOP\n");
         break;
-    case PUSHI:
+    case PUSH_I:
         log_info("VM: PUSHI %d\n", as_int(ins->operands[0]));
         stack_push(&vm->mem, &new_int(ins->operands[0].int_value));
         break;
-    case PUSHF:
+    case PUSH_F:
         log_info("VM: PUSHF %f\n", as_float(ins->operands[0]));
         stack_push(&vm->mem, &new_float(ins->operands[0].float_value));
         break;
@@ -145,79 +136,62 @@ void vm_decode(VM *vm, VMInstruction *ins) {
         log_info("VM: POP\n");
         stack_pop(&vm->mem);
         break;
-    case STORES: {
-        // Store the value in the string table
-        log_info("VM: STORES %s %s\n", as_string(ins->operands[0]),
-                 as_string(ins->operands[1]));
-
-        char *key = as_string(ins->operands[0]);
-        char *val = as_string(ins->operands[1]);
-        ht_set_string(vm->string_tbl, key, val);
-        break;
-    }
-    case LOADS: {
-        // Load the value from the string table onto the stack
-        char *key = as_string(ins->operands[0]);
-        char *val = ht_get_string(vm->string_tbl, key);
-        log_info("VM: LOADS %s\n", key);
-
-        if (val == NULL) {
-            log_error("VM: key not found in string table\n");
-            break;
-        }
-
-        stack_push(&vm->mem, &new_string(val));
-        stack_dump(&vm->mem);
-
-        break;
-    }
-
-    /* Addressing */
     case J:
         log_info("VM: J %d\n", ins->operands[0].int_value);
         vm->ip = ins->operands[0].int_value;
         break;
-    case J_REL:
-        log_info("VM: J_REL %d\n", ins->operands[0].int_value);
-        vm->ip += ins->operands[0].int_value;
+    case JEQ:
+        log_info("VM: JEQ\n");
+        if (vm->eq == 1) {
+            vm->ip = ins->operands[0].int_value;
+        }
         break;
-    case J_EQ:
-        log_info("VM: J_EQ\n");
+    case JNE:
+        log_info("VM: JNE\n");
+        if (vm->eq == 0) {
+            vm->ip = ins->operands[0].int_value;
+        }
         break;
-
-    /* Arithmetic */
-    case ADDI: {
-        Value *a = stack_pop(&vm->mem);
-        Value *b = stack_pop(&vm->mem);
+    case JLT:
+        log_info("VM: JLT\n");
+        if (vm->dif == -1) {
+            vm->ip = ins->operands[0].int_value;
+        }
+        break;
+    case JGR:
+        log_info("VM: JGR\n");
+        if (vm->dif == 1) {
+            vm->ip = ins->operands[0].int_value;
+        }
+        break;
+    case ADD_I:
+        a = stack_pop(&vm->mem);
+        b = stack_pop(&vm->mem);
         log_info("VM: ADDI %d %d\n", b->data.int_value, a->data.int_value);
         stack_push(&vm->mem, &new_int(b->data.int_value + a->data.int_value));
         stack_dump(&vm->mem);
         break;
-    }
-    case SUBI: {
-        Value *a = stack_pop(&vm->mem);
-        Value *b = stack_pop(&vm->mem);
+    case SUB_I:
+        a = stack_pop(&vm->mem);
+        b = stack_pop(&vm->mem);
         log_info("VM: SUBI %d %d\n", b->data.int_value, a->data.int_value);
         stack_push(&vm->mem, &new_int(b->data.int_value - a->data.int_value));
         stack_dump(&vm->mem);
         break;
-    }
-    case MUL: {
-        Value *a = stack_pop(&vm->mem);
-        Value *b = stack_pop(&vm->mem);
+    case MUL_I:
+        a = stack_pop(&vm->mem);
+        b = stack_pop(&vm->mem);
         log_info("VM: MUL %d %d\n", b->data.int_value, a->data.int_value);
         stack_push(&vm->mem, &new_int(b->data.int_value * a->data.int_value));
         stack_dump(&vm->mem);
         break;
-    }
-    case DIV: {
-        Value *a = stack_pop(&vm->mem);
-        Value *b = stack_pop(&vm->mem);
+    case DIV_I:
+        a = stack_pop(&vm->mem);
+        b = stack_pop(&vm->mem);
         log_info("VM: DIV %d %d\n", b->data.int_value, a->data.int_value);
         stack_push(&vm->mem, &new_int(b->data.int_value / a->data.int_value));
         stack_dump(&vm->mem);
         break;
-    }
 
     default:
         log_error("VM: unknown opcode %d\n", ins->opcode);

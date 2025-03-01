@@ -33,6 +33,7 @@
         "hashtable.h": "c",
         "cstdint": "cpp",
         "stdarg.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "bytecode.h": "c"
     }
 }

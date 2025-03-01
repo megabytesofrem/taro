@@ -27,8 +27,7 @@
 /**
  * Value type enumeration
  */
-enum TrValueType
-{
+enum RuntimeValueType {
     TY_UNKNOWN,
     TY_INT,
     TY_FLOAT,
@@ -38,10 +37,9 @@ enum TrValueType
     TY_STRUCTURE,
 };
 
-typedef struct Value
-{
+typedef struct RuntimeValue {
     bool marked;
-    enum TrValueType type;
+    enum RuntimeValueType type;
 
     union {
         char *string_value;
@@ -50,12 +48,12 @@ typedef struct Value
     } data;
 
     // Representing arrays/structures
-    struct Value **s_children;
+    struct RuntimeValue **s_children;
     int s_children_count;    // current number of children
     int s_children_capacity; // maximum number of children
 } Value;
 
-Value *value_create(enum TrValueType type);
+Value *value_create(enum RuntimeValueType type);
 
 /**
  * Return whether the value has child nodes. This is used to determine if we

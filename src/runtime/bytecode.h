@@ -1,31 +1,29 @@
 #ifndef TARO_BYTECODE_H
 #define TARO_BYTECODE_H
 
+#include "../util/common.h"
 #include "vm.h"
 #include <stdint.h>
 
-/* Typedef this so I don't have to type all this */
-#undef _packed
-#define _packed __attribute__((__packed__))
-
-struct _packed BcHdr {
+struct packed_t BytecodeHdr {
     char magic[4]; // TARO
     int version;   // Binary version
+
+    int code_size;
 };
 
 /**
  * Executable bytecode format.
  */
-struct _packed Bytecode {
-    struct _packed BcHdr header;
+struct packed_t Bytecode {
+    struct packed_t BytecodeHdr header;
 
-    uint32_t **code;
+    uint8_t *code;
 };
 
-uint32_t encode_operand(VMOperand operand);
-void decode_operand(uint32_t encoded, VMOperand *operand);
+int read_bytecode_stream(uint8_t *stream, size_t len, VMInstruction *out_insts,
+                         size_t *out_count);
 
-uint32_t encode_vm_ins(VMInstruction ins);
-void decode_vm_ins(uint32_t encoded, VMInstruction *ins);
+int read_bytecode_file(const char *filename, struct Bytecode *bc);
 
 #endif
